@@ -1,9 +1,12 @@
-use crate::{BlockInfo, FixedParametersBlock, SupplierParametersBlock, GeneralParametersBlock, MapBlock, SORFile};
+use crate::{
+    BlockInfo, FixedParametersBlock, GeneralParametersBlock, KeyEvent, LastKeyEvent, KeyEvents, MapBlock,
+    SORFile, SupplierParametersBlock,
+};
 use nom::{
-    bytes::complete::{take, tag, take_until},
-    sequence::terminated,
-    multi::{count},
+    bytes::complete::{tag, take, take_until},
+    multi::count,
     number::complete::{le_i16, le_i32, le_u16, le_u32},
+    sequence::terminated,
     IResult,
 };
 use std::str;
@@ -15,23 +18,9 @@ const BLOCK_ID_KEYEVENTS: &str = "KeyEvents\0";
 const BLOCK_ID_LNKPARAMS: &str = "LnkParams\0";
 const BLOCK_ID_DATAPTS: &str = "DataPts\0";
 const BLOCK_ID_CHECKSUM: &str = "Cksum\0";
-// const BLOCK_ID_LIST: &[&str] = &[BLOCK_ID_MAP, BLOCK_ID_GENPARAMS, BLOCK_ID_SUPPARAMS, BLOCK_ID_FXDPARAMS, BLOCK_ID_KEYEVENTS, BLOCK_ID_LNKPARAMS, BLOCK_ID_DATAPTS, BLOCK_ID_CHECKSUM];
-// fn map_block_revision_no(i: &[u8]) -> IResult<&[u8], i16> {
-//     le_i16(i)
-// }
 
 fn block_header(i: &[u8]) -> IResult<&[u8], &[u8]> {
     null_terminated_chunk(i)
-    // alt((
-    //     tag(BLOCK_ID_MAP),
-    //     tag(BLOCK_ID_GENPARAMS),
-    //     tag(BLOCK_ID_SUPPARAMS),
-    //     tag(BLOCK_ID_FXDPARAMS),
-    //     tag(BLOCK_ID_KEYEVENTS),
-    //     tag(BLOCK_ID_LNKPARAMS),
-    //     tag(BLOCK_ID_DATAPTS),
-    //     tag(BLOCK_ID_CHECKSUM),
-    // ))(i)
 }
 
 fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
@@ -54,7 +43,7 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, revision_number) = le_u16(i)?;
     let (i, block_size) = le_i32(i)?;
     let (i, block_count) = le_i16(i)?;
-    let blocks_to_read:usize = (block_count-1) as usize;
+    let blocks_to_read: usize = (block_count - 1) as usize;
     let (i, blocks) = count(map_block_info, blocks_to_read)(i)?;
     return Ok((
         i,
@@ -145,7 +134,7 @@ pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParamet
     let (i, other) = null_terminated_str(i)?;
     return Ok((
         i,
-        SupplierParametersBlock { 
+        SupplierParametersBlock {
             supplier_name: supplier_name,
             otdr_mainframe_id: otdr_mainframe_id,
             otdr_mainframe_sn: otdr_mainframe_sn,
@@ -222,13 +211,110 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     ));
 }
 
+fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
+    let (i, event_number) = le_i16(i)?;
+    let (i, event_propogation_time) = le_i32(i)?;
+    let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
+    let (i, event_loss) = le_i16(i)?;
+    let (i, event_reflectance) = le_i32(i)?;
+    let (i, event_code) = fixed_length_str(i, 6)?;
+    let (i, loss_measurement_technique) = fixed_length_str(i, 2)?;
+    let (i, marker_location_1) = le_i32(i)?;
+    let (i, marker_location_2) = le_i32(i)?;
+    let (i, marker_location_3) = le_i32(i)?;
+    let (i, marker_location_4) = le_i32(i)?;
+    let (i, marker_location_5) = le_i32(i)?;
+    let (i, comment) = null_terminated_str(i)?;
+    return Ok((
+        i,
+        KeyEvent {
+            event_number: event_number,
+            event_propogation_time: event_propogation_time,
+            attenuation_coefficient_lead_in_fiber: attenuation_coefficient_lead_in_fiber,
+            event_loss: event_loss,
+            event_reflectance: event_reflectance,
+            event_code: event_code,
+            loss_measurement_technique: loss_measurement_technique,
+            marker_location_1: marker_location_1,
+            marker_location_2: marker_location_2,
+            marker_location_3: marker_location_3,
+            marker_location_4: marker_location_4,
+            marker_location_5: marker_location_5,
+            comment: comment,
+        },
+    ));
+}
+
+fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
+    let (i, event_number) = le_i16(i)?;
+    let (i, event_propogation_time) = le_i32(i)?;
+    let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
+    let (i, event_loss) = le_i16(i)?;
+    let (i, event_reflectance) = le_i32(i)?;
+    let (i, event_code) = fixed_length_str(i, 6)?;
+    let (i, loss_measurement_technique) = fixed_length_str(i, 2)?;
+    let (i, marker_location_1) = le_i32(i)?;
+    let (i, marker_location_2) = le_i32(i)?;
+    let (i, marker_location_3) = le_i32(i)?;
+    let (i, marker_location_4) = le_i32(i)?;
+    let (i, marker_location_5) = le_i32(i)?;
+    let (i, comment) = null_terminated_str(i)?;
+    let (i, end_to_end_loss) = le_i32(i)?;
+    let (i, end_to_end_marker_position_1) = le_i32(i)?;
+    let (i, end_to_end_marker_position_2) = le_i32(i)?;
+    let (i, optical_return_loss) = le_u16(i)?;
+    let (i, optical_return_loss_marker_position_1) = le_i32(i)?;
+    let (i, optical_return_loss_marker_position_2) = le_i32(i)?;
+
+    return Ok((
+        i,
+        LastKeyEvent {
+            event_number: event_number,
+            event_propogation_time: event_propogation_time,
+            attenuation_coefficient_lead_in_fiber: attenuation_coefficient_lead_in_fiber,
+            event_loss: event_loss,
+            event_reflectance: event_reflectance,
+            event_code: event_code,
+            loss_measurement_technique: loss_measurement_technique,
+            marker_location_1: marker_location_1,
+            marker_location_2: marker_location_2,
+            marker_location_3: marker_location_3,
+            marker_location_4: marker_location_4,
+            marker_location_5: marker_location_5,
+            comment: comment,
+            end_to_end_loss: end_to_end_loss,
+            end_to_end_marker_position_1: end_to_end_marker_position_1,
+            end_to_end_marker_position_2: end_to_end_marker_position_2,
+            optical_return_loss: optical_return_loss,
+            optical_return_loss_marker_position_1: optical_return_loss_marker_position_1,
+            optical_return_loss_marker_position_2: optical_return_loss_marker_position_2,
+        },
+    ));
+}
+
+
+pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
+    let (i, _) = tag(BLOCK_ID_KEYEVENTS)(i)?;
+    let (i, number_of_key_events) = le_i16(i)?;
+    let (i, key_events) = count(key_event, (number_of_key_events-1) as usize)(i)?;
+    let (i, last_key_event) = last_key_event(i)?;
+    return Ok((
+        i,
+        KeyEvents {
+            number_of_key_events: number_of_key_events,
+            key_events: key_events,
+            last_key_event: last_key_event,
+        },
+    ));
+}
+
 pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     let (i, map) = map_block(i)?;
     let (i, general_parameters) = general_parameters_block(i)?;
-    
+
     let (i, supplier_parameters) = supplier_parameters_block(i)?;
     let (i, fixed_parameters) = fixed_parameters_block(i)?;
-    
+
     return Ok((
         i,
         SORFile {
@@ -250,14 +336,14 @@ fn test_load_file_section(header: &str) -> &[u8] {
     for block in map.block_info {
         len = block.size as usize;
         // Ignore the incoming \0 on the header definition to match the null-stripped line in the parsed block
-        if block.identifier == &header[0..(header.len()-1)] {
+        if block.identifier == &header[0..(header.len() - 1)] {
             break;
         }
         offset += block.size as usize;
     }
     // println!("reading from {} to {}", offset, (offset+len));
     // println!("data: {:?}", &data[offset..(offset+len)]);
-    return &data[offset..(offset+len)];
+    return &data[offset..(offset + len)];
 }
 
 #[test]
@@ -269,12 +355,14 @@ fn test_parse_file() {
 }
 
 #[test]
-fn test_null_terminated_chunk() {
-    let test_str = "abcdef\0";
-    let res = null_terminated_chunk(test_str.as_bytes());
-    let data = res.unwrap();
-    assert_eq!(data.0, "".as_bytes()); // make sure we've consumed the null
-    assert_eq!(data.1, "abcdef".as_bytes());
+fn test_key_events_block() {
+    let data = test_load_file_section(BLOCK_ID_KEYEVENTS);
+    let res = key_events_block(data);
+    assert_eq!(
+        res.unwrap().1,
+        KeyEvents { number_of_key_events: 3, key_events: vec![KeyEvent { event_number: 1, event_propogation_time: 0, attenuation_coefficient_lead_in_fiber: 0, event_loss: -215, event_reflectance: -46671, event_code: "1F9999", loss_measurement_technique: "LS", marker_location_1: 0, marker_location_2: 0, marker_location_3: 0, marker_location_4: 0, marker_location_5: 0, comment: " " }, KeyEvent { event_number: 2, event_propogation_time: 532, attenuation_coefficient_lead_in_fiber: 0, event_loss: 374, event_reflectance: 0, event_code: "0F9999", loss_measurement_technique: "LS", marker_location_1: 0, marker_location_2: 0, marker_location_3: 0, marker_location_4: 0, marker_location_5: 0, comment: " " }], last_key_event: LastKeyEvent { event_number: 3, event_propogation_time: 182802, attenuation_coefficient_lead_in_fiber: 185, event_loss: 
+            -950, event_reflectance: -23027, event_code: "2E9999", loss_measurement_technique: "LS", marker_location_1: 0, marker_location_2: 0, marker_location_3: 0, marker_location_4: 0, marker_location_5: 0, comment: " ", end_to_end_loss: 576, end_to_end_marker_position_1: 0, end_to_end_marker_position_2: 182809, optical_return_loss: 24516, optical_return_loss_marker_position_1: 0, optical_return_loss_marker_position_2: 182809 } }
+    );
 }
 
 #[test]
@@ -283,7 +371,35 @@ fn test_fixparam_block() {
     let res = fixed_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
-        FixedParametersBlock { date_time_stamp: 1569835674, units_of_distance: "mt", actual_wavelength: 1550, acquisition_offset: -2147, acquisition_offset_distance: -42, total_n_pulse_widths_used: 1, pulse_widths_used: vec![30], data_spacing: 100000, n_data_points_for_pulse_widths_used: vec![30000], group_index: 146750, backscatter_coefficient: 802, number_of_averages: 2704, averaging_time: 3000, acquisition_range: 300000, acquisition_range_distance: 6000, front_panel_offset: 2147, noise_floor_level: 30342, noise_floor_scale_factor: 1000, power_offset_first_point: 0, loss_threshold: 50, reflectance_threshold: 65000, end_of_fibre_threshold: 3000, trace_type: "ST", window_coordinate_1: 0, window_coordinate_2: 0, window_coordinate_3: 0, window_coordinate_4: 0 },
+        FixedParametersBlock {
+            date_time_stamp: 1569835674,
+            units_of_distance: "mt",
+            actual_wavelength: 1550,
+            acquisition_offset: -2147,
+            acquisition_offset_distance: -42,
+            total_n_pulse_widths_used: 1,
+            pulse_widths_used: vec![30],
+            data_spacing: 100000,
+            n_data_points_for_pulse_widths_used: vec![30000],
+            group_index: 146750,
+            backscatter_coefficient: 802,
+            number_of_averages: 2704,
+            averaging_time: 3000,
+            acquisition_range: 300000,
+            acquisition_range_distance: 6000,
+            front_panel_offset: 2147,
+            noise_floor_level: 30342,
+            noise_floor_scale_factor: 1000,
+            power_offset_first_point: 0,
+            loss_threshold: 50,
+            reflectance_threshold: 65000,
+            end_of_fibre_threshold: 3000,
+            trace_type: "ST",
+            window_coordinate_1: 0,
+            window_coordinate_2: 0,
+            window_coordinate_3: 0,
+            window_coordinate_4: 0
+        },
     );
 }
 
@@ -293,10 +409,17 @@ fn test_supparam_block() {
     let res = supplier_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
-        SupplierParametersBlock { supplier_name: "Noyes", otdr_mainframe_id: "OFL280C-100", otdr_mainframe_sn: "2G14PT7552     ", optical_module_id: "0.0.43 ", optical_module_sn: " ", software_revision: "1.2.04b1011F ", other: "Last Calibration Date:  2019-03-25 " }
+        SupplierParametersBlock {
+            supplier_name: "Noyes",
+            otdr_mainframe_id: "OFL280C-100",
+            otdr_mainframe_sn: "2G14PT7552     ",
+            optical_module_id: "0.0.43 ",
+            optical_module_sn: " ",
+            software_revision: "1.2.04b1011F ",
+            other: "Last Calibration Date:  2019-03-25 "
+        }
     );
 }
-
 
 #[test]
 fn test_genparam_block() {
@@ -304,7 +427,21 @@ fn test_genparam_block() {
     let res = general_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
-        GeneralParametersBlock { language_code: "EN", cable_id: "C001 ", fiber_id: "009", fiber_type: 652, nominal_wavelength: 1550, originating_location: "CAB000 ", terminating_location: "CLS007 ", cable_code: " ", current_data_flag: "NC", user_offset: 24641, user_offset_distance: 503, operator: " ", comment: " " }
+        GeneralParametersBlock {
+            language_code: "EN",
+            cable_id: "C001 ",
+            fiber_id: "009",
+            fiber_type: 652,
+            nominal_wavelength: 1550,
+            originating_location: "CAB000 ",
+            terminating_location: "CLS007 ",
+            cable_code: " ",
+            current_data_flag: "NC",
+            user_offset: 24641,
+            user_offset_distance: 503,
+            operator: " ",
+            comment: " "
+        }
     );
 }
 
@@ -315,6 +452,71 @@ fn test_map_block() {
     // println!("{:#?}", res.unwrap().1);
     assert_eq!(
         res.unwrap().1,
-        MapBlock { revision_number: 200, block_size: 172, block_count: 11, block_info: vec![BlockInfo { identifier: "GenParams", revision_number: 200, size: 58 }, BlockInfo { identifier: "SupParams", revision_number: 200, size: 104 }, BlockInfo { identifier: "FxdParams", revision_number: 200, size: 92 }, BlockInfo { identifier: "FodParams", revision_number: 200, size: 266 }, BlockInfo { identifier: "KeyEvents", revision_number: 200, size: 166 }, BlockInfo { identifier: "Fod02Params", revision_number: 200, size: 38 }, BlockInfo { identifier: "Fod04Params", revision_number: 200, size: 166 }, BlockInfo { identifier: "Fod03Params", revision_number: 200, size: 26 }, BlockInfo { identifier: "DataPts", revision_number: 200, size: 60020 }, BlockInfo { identifier: "Cksum", revision_number: 200, size: 8 }] }
+        MapBlock {
+            revision_number: 200,
+            block_size: 172,
+            block_count: 11,
+            block_info: vec![
+                BlockInfo {
+                    identifier: "GenParams",
+                    revision_number: 200,
+                    size: 58
+                },
+                BlockInfo {
+                    identifier: "SupParams",
+                    revision_number: 200,
+                    size: 104
+                },
+                BlockInfo {
+                    identifier: "FxdParams",
+                    revision_number: 200,
+                    size: 92
+                },
+                BlockInfo {
+                    identifier: "FodParams",
+                    revision_number: 200,
+                    size: 266
+                },
+                BlockInfo {
+                    identifier: "KeyEvents",
+                    revision_number: 200,
+                    size: 166
+                },
+                BlockInfo {
+                    identifier: "Fod02Params",
+                    revision_number: 200,
+                    size: 38
+                },
+                BlockInfo {
+                    identifier: "Fod04Params",
+                    revision_number: 200,
+                    size: 166
+                },
+                BlockInfo {
+                    identifier: "Fod03Params",
+                    revision_number: 200,
+                    size: 26
+                },
+                BlockInfo {
+                    identifier: "DataPts",
+                    revision_number: 200,
+                    size: 60020
+                },
+                BlockInfo {
+                    identifier: "Cksum",
+                    revision_number: 200,
+                    size: 8
+                }
+            ]
+        }
     );
+}
+
+#[test]
+fn test_null_terminated_chunk() {
+    let test_str = "abcdef\0";
+    let res = null_terminated_chunk(test_str.as_bytes());
+    let data = res.unwrap();
+    assert_eq!(data.0, "".as_bytes()); // make sure we've consumed the null
+    assert_eq!(data.1, "abcdef".as_bytes());
 }

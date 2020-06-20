@@ -87,6 +87,54 @@ pub struct FixedParametersBlock<'a> {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+pub struct KeyEvent<'a> {
+    event_number: i16,
+    event_propogation_time: i32,
+    attenuation_coefficient_lead_in_fiber: i16,
+    event_loss: i16,
+    event_reflectance: i32,
+    event_code: &'a str,
+    loss_measurement_technique: &'a str,
+    marker_location_1: i32,
+    marker_location_2: i32,
+    marker_location_3: i32,
+    marker_location_4: i32,
+    marker_location_5: i32,
+    comment: &'a str,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct LastKeyEvent<'a> {
+    event_number: i16,
+    event_propogation_time: i32,
+    attenuation_coefficient_lead_in_fiber: i16,
+    event_loss: i16,
+    event_reflectance: i32,
+    event_code: &'a str,
+    loss_measurement_technique: &'a str,
+    marker_location_1: i32,
+    marker_location_2: i32,
+    marker_location_3: i32,
+    marker_location_4: i32,
+    marker_location_5: i32,
+    comment: &'a str,
+    end_to_end_loss: i32,
+    end_to_end_marker_position_1: i32,
+    end_to_end_marker_position_2: i32,
+    optical_return_loss: u16,
+    optical_return_loss_marker_position_1: i32,
+    optical_return_loss_marker_position_2: i32,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct KeyEvents<'a> {
+    number_of_key_events: i16,
+    key_events: Vec<KeyEvent<'a>>,
+    last_key_event: LastKeyEvent<'a>,
+}
+
+
+#[derive(Debug, PartialEq, Serialize)]
 pub struct SORFile<'b> {
     map: MapBlock<'b>,
     general_parameters: GeneralParametersBlock<'b>,
