@@ -11,7 +11,6 @@ use std::io::prelude::*;
 extern crate nom;
 pub mod parser;
 use serde::{Serialize};
-use serde_json::Result;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct BlockInfo<'a> {
@@ -68,7 +67,7 @@ pub struct FixedParametersBlock<'a> {
     data_spacing: i32,
     n_data_points_for_pulse_widths_used: Vec<i32>,
     group_index: i32,
-    backscatter_coefficient: i32,
+    backscatter_coefficient: i16,
     number_of_averages: i32,
     averaging_time: u16,
     acquisition_range: i32,

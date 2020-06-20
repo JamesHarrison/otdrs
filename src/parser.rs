@@ -2,7 +2,7 @@ use crate::{BlockInfo, FixedParametersBlock, SupplierParametersBlock, GeneralPar
 use nom::{
     bytes::complete::{take, tag, take_until},
     sequence::terminated,
-    multi::{many_m_n},
+    multi::{count},
     number::complete::{le_i16, le_i32, le_u16, le_u32},
     IResult,
 };
@@ -55,7 +55,7 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, block_size) = le_i32(i)?;
     let (i, block_count) = le_i16(i)?;
     let blocks_to_read:usize = (block_count-1) as usize;
-    let (i, blocks) = many_m_n(blocks_to_read, blocks_to_read, map_block_info)(i)?;
+    let (i, blocks) = count(map_block_info, blocks_to_read)(i)?;
     return Ok((
         i,
         MapBlock {
@@ -165,11 +165,13 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     let (i, acquisition_offset) = le_i32(i)?;
     let (i, acquisition_offset_distance) = le_i32(i)?;
     let (i, total_n_pulse_widths_used) = le_i16(i)?;
-    let (i, pulse_widths_used) = many_m_n(total_n_pulse_widths_used as usize, total_n_pulse_widths_used as usize, le_i16)(i)?;
+    let pulse_width_count: usize = total_n_pulse_widths_used as usize;
+    let (i, pulse_widths_used) = count(le_i16, pulse_width_count)(i)?;
+    //println!("{}, {:?}", pulse_width_count, pulse_widths_used);
     let (i, data_spacing) = le_i32(i)?;
-    let (i, n_data_points_for_pulse_widths_used) = many_m_n(total_n_pulse_widths_used as usize, total_n_pulse_widths_used as usize, le_i32)(i)?;
+    let (i, n_data_points_for_pulse_widths_used) = count(le_i32, pulse_width_count)(i)?;
     let (i, group_index) = le_i32(i)?;
-    let (i, backscatter_coefficient) = le_i32(i)?;
+    let (i, backscatter_coefficient) = le_i16(i)?;
     let (i, number_of_averages) = le_i32(i)?;
     let (i, averaging_time) = le_u16(i)?;
     let (i, acquisition_range) = le_i32(i)?;
@@ -240,7 +242,7 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
 
 #[cfg(test)]
 fn test_load_file_section(header: &str) -> &[u8] {
-    let data = include_bytes!("../data/example2-exfo-maxtester730c.sor");
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
     let res = map_block(data);
     let map = res.unwrap().1;
     let mut offset: usize = map.block_size as usize;
@@ -260,7 +262,7 @@ fn test_load_file_section(header: &str) -> &[u8] {
 
 #[test]
 fn test_parse_file() {
-    let data = include_bytes!("../data/example2-exfo-maxtester730c.sor");
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
     let res = parse_file(data);
     let sor = res.unwrap().1;
     assert_eq!(sor.map.revision_number, 200);
@@ -281,35 +283,7 @@ fn test_fixparam_block() {
     let res = fixed_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
-        FixedParametersBlock {
-            date_time_stamp:0,
-            units_of_distance: "",
-            actual_wavelength: 0,
-            acquisition_offset: 0,
-            acquisition_offset_distance: 0,
-            total_n_pulse_widths_used: 0,
-            pulse_widths_used: vec![0],
-            data_spacing: 0,
-            n_data_points_for_pulse_widths_used: vec![0],
-            group_index: 0,
-            backscatter_coefficient: 0,
-            number_of_averages: 0,
-            averaging_time: 0,
-            acquisition_range: 0,
-            acquisition_range_distance: 0,
-            front_panel_offset: 0,
-            noise_floor_level: 0,
-            noise_floor_scale_factor: 0,
-            power_offset_first_point: 0,
-            loss_threshold: 0,
-            reflectance_threshold: 0,
-            end_of_fibre_threshold: 0,
-            trace_type: "",
-            window_coordinate_1: 0,
-            window_coordinate_2: 0,
-            window_coordinate_3: 0,
-            window_coordinate_4: 0,
-        },
+        FixedParametersBlock { date_time_stamp: 1569835674, units_of_distance: "mt", actual_wavelength: 1550, acquisition_offset: -2147, acquisition_offset_distance: -42, total_n_pulse_widths_used: 1, pulse_widths_used: vec![30], data_spacing: 100000, n_data_points_for_pulse_widths_used: vec![30000], group_index: 146750, backscatter_coefficient: 802, number_of_averages: 2704, averaging_time: 3000, acquisition_range: 300000, acquisition_range_distance: 6000, front_panel_offset: 2147, noise_floor_level: 30342, noise_floor_scale_factor: 1000, power_offset_first_point: 0, loss_threshold: 50, reflectance_threshold: 65000, end_of_fibre_threshold: 3000, trace_type: "ST", window_coordinate_1: 0, window_coordinate_2: 0, window_coordinate_3: 0, window_coordinate_4: 0 },
     );
 }
 
