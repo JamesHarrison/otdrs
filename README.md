@@ -41,6 +41,12 @@ The parser has been tested on SOR files generated from:
 * EXFO MaxTester and FTBx OTDRs
 * EXFO iOLM files exported to SOR from EXFO FastReporter3
 
+## Interpretation
+
+To actually interpet any of this data correctly you are going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
+
+This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible.
+
 ## License
 
 otdrs - a SOR file parsing tool 
