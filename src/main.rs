@@ -135,11 +135,61 @@ pub struct KeyEvents<'a> {
 
 
 #[derive(Debug, PartialEq, Serialize)]
+pub struct Landmark<'a> {
+    landmark_number: i16,
+    landmark_code: &'a str,
+    landmark_location: i32,
+    related_event_number: i16,
+    gps_longitude: i32,
+    gps_latitude: i32,
+    fiber_correction_factor_lead_in_fiber: i16,
+    sheath_marker_entering_landmark: i32,
+    sheath_marker_leaving_landmark: i32,
+    units_of_sheath_marks_leaving_landmark: &'a str,
+    mode_field_diameter_leaving_landmark: i16,
+    comment: &'a str,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct DataPointsAtScaleFactor {
+    n_points: i32,
+    scale_factor: i16,
+    data: Vec<u16>,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct DataPoints {
+    number_of_data_points: i32,
+    total_number_scale_factors_used: i16,
+    scale_factors: Vec<DataPointsAtScaleFactor>,
+}
+
+
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct LinkParameters<'a> {
+    number_of_landmarks: i16,
+    landmarks: Vec<Landmark<'a>>,
+}
+
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct ProprietaryBlock<'a> {
+    header: &'a str,
+    data: &'a [u8],
+}
+
+
+#[derive(Debug, PartialEq, Serialize)]
 pub struct SORFile<'b> {
     map: MapBlock<'b>,
-    general_parameters: GeneralParametersBlock<'b>,
-    supplier_parameters: SupplierParametersBlock<'b>,
-    fixed_parameters: FixedParametersBlock<'b>,
+    general_parameters: Option<GeneralParametersBlock<'b>>,
+    supplier_parameters: Option<SupplierParametersBlock<'b>>,
+    fixed_parameters: Option<FixedParametersBlock<'b>>,
+    key_events: Option<KeyEvents<'b>>,
+    link_parameters: Option<LinkParameters<'b>>,
+    data_points: Option<DataPoints>,
+    proprietary_blocks: Vec<ProprietaryBlock<'b>>,
 }
 
 fn main() -> io::Result<()> {
