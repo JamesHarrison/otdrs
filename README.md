@@ -20,6 +20,12 @@ This is the author's first major Rust project, so use with caution.
 
 This is absolutely not guaranteed to work in all cases with all files or produce correct output in all cases (or indeed any). Check the output with the files you're using and a known-good viewer if you care about what you're doing.
 
+## Known Issues
+
+* The "link parameters" block is not currently decoded, as the author does not have files which contain it for testing. This is not used in common OTDR sets.
+* Testing is not as comprehensive and extensive as it should be
+* There is no application of fixed scaling factors described in SR-4731
+
 ## Proprietary Blocks
 
 While SOR files are standardised, not all of the content is; there are a set of standard and required blocks for the basic information, and otdrs only attempts to parse the standard blocks in a SOR file.
