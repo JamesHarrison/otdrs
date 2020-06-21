@@ -64,7 +64,7 @@ pub struct FixedParametersBlock<'a> {
     acquisition_offset_distance: i32,
     total_n_pulse_widths_used: i16,
     pulse_widths_used: Vec<i16>, // TODO: More
-    data_spacing: i32,
+    data_spacing: Vec<i32>,
     n_data_points_for_pulse_widths_used: Vec<i32>,
     group_index: i32,
     backscatter_coefficient: i16,

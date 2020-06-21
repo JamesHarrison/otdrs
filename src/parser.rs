@@ -157,7 +157,7 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     let pulse_width_count: usize = total_n_pulse_widths_used as usize;
     let (i, pulse_widths_used) = count(le_i16, pulse_width_count)(i)?;
     //println!("{}, {:?}", pulse_width_count, pulse_widths_used);
-    let (i, data_spacing) = le_i32(i)?;
+    let (i, data_spacing) = count(le_i32, pulse_width_count)(i)?;
     let (i, n_data_points_for_pulse_widths_used) = count(le_i32, pulse_width_count)(i)?;
     let (i, group_index) = le_i32(i)?;
     let (i, backscatter_coefficient) = le_i16(i)?;
@@ -605,7 +605,7 @@ fn test_fixparam_block() {
             acquisition_offset_distance: -42,
             total_n_pulse_widths_used: 1,
             pulse_widths_used: vec![30],
-            data_spacing: 100000,
+            data_spacing: vec![100000],
             n_data_points_for_pulse_widths_used: vec![30000],
             group_index: 146750,
             backscatter_coefficient: 802,
