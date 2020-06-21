@@ -1,8 +1,13 @@
 [package]
 name = "otdrs"
 version = "0.1.0"
-authors = ["James Harrison"]
+authors = ["James Harrison <james@talkunafraid.co.uk>"]
 edition = "2018"
+description = "otdrs is a tool to convert OTDR Bellcore SOR files to Serdes-compatible structs and JSON thereafter"
+license = "GPLv3"
+documentation = "https://github.com/JamesHarrison/otdrs"
+homepage = "https://github.com/JamesHarrison/otdrs"
+repository = "https://github.com/JamesHarrison/otdrs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
