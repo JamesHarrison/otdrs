@@ -15,3 +15,9 @@ repository = "https://github.com/JamesHarrison/otdrs"
 nom = "5"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+
+[[bin]]
+name = "otdrs"
+test = true
+doc = true
+bench = true

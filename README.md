@@ -14,6 +14,10 @@ Rust was chosen for its robustness, type-safety, and the excellent `nom` parser 
 
 `otdrs` takes one argument, the path to a SOR file. Its output is a single JSON root which contains the information within the SOR file.
 
+### Installing
+
+If you have Rust/Cargo installed you can install otdrs with `cargo install otdrs`.
+
 ## Code Quality, Conformance/Compliance
 
 This is the author's first major Rust project, so use with caution.
