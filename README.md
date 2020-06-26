@@ -10,6 +10,8 @@ Where the parser cannot reliably extract information it is omitted; in this sens
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
+![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg)
+
 ## Usage
 
 `otdrs` takes one argument, the path to a SOR file. Its output is a single JSON root which contains the information within the SOR file.
