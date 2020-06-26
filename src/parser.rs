@@ -29,7 +29,8 @@ const BLOCK_ID_DATAPTS: &str = "DataPts";
 /// Block header string for the checksum block
 const BLOCK_ID_CHECKSUM: &str = "Cksum";
 
-/// Parses to look for a block header, null-terminated, and returns the bytes (sans null character)
+/// Parses to look for a block header, null-terminated, and returns the bytes 
+/// (sans null character)
 fn block_header<'a>(i: &'a [u8], header: &str) -> IResult<&'a [u8], &'a [u8]> {
     terminated(tag(header), tag("\0"))(i)
 }
@@ -49,7 +50,8 @@ fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
     ));
 }
 
-/// Parses the map block in a SOR file, which contains information about the location of all blocks in the file
+/// Parses the map block in a SOR file, which contains information about the 
+/// location of all blocks in the file
 pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, _) = block_header(i, BLOCK_ID_MAP)?;
     let (i, revision_number) = le_u16(i)?;
@@ -68,7 +70,8 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     ));
 }
 
-/// Parse an incoming byte sequence until a null character is found and return the bytes to that point, consuming the null
+/// Parse an incoming byte sequence until a null character is found and return 
+/// the bytes to that point, consuming the null
 fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
     terminated(take_until("\0"), tag("\0"))(i)
 }
@@ -96,7 +99,8 @@ fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
     return Ok((i, string));
 }
 
-/// Parse the general parameters block, which contains acquisition information as well as locations/identifiers.
+/// Parse the general parameters block, which contains acquisition information 
+/// as well as locations/identifiers.
 pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_GENPARAMS)?;
     let (i, language_code) = fixed_length_str(i, 2)?;
@@ -132,7 +136,8 @@ pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParameter
     ));
 }
 
-/// Parse the supplier parameters block, which contains information about the OTDR equipment used.
+/// Parse the supplier parameters block, which contains information about the 
+/// OTDR equipment used.
 pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_SUPPARAMS)?;
     let (i, supplier_name) = null_terminated_str(i)?;
@@ -156,7 +161,8 @@ pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParamet
     ));
 }
 
-/// Parse the fixed paramters block, which contains most of the information required to interpret the stored data.
+/// Parse the fixed paramters block, which contains most of the information 
+/// required to interpret the stored data.
 pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_FXDPARAMS)?;
     let (i, date_time_stamp) = le_u32(i)?;
@@ -222,7 +228,8 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     ));
 }
 
-/// Parse any key event, except for the final key event, which is parsed with last_key_event as it differs structurally
+/// Parse any key event, except for the final key event, which is parsed with 
+/// last_key_event as it differs structurally
 pub fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
@@ -257,7 +264,8 @@ pub fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     ));
 }
 
-/// Parse the final key event in the key events block, which contains much of the end-to-end loss definitions
+/// Parse the final key event in the key events block, which contains much of 
+/// the end-to-end loss definitions
 pub fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
@@ -404,7 +412,8 @@ pub fn data_points_block<'a>(i: &[u8]) -> IResult<&[u8], DataPoints> {
         },
     ));
 }
-/// Parse the header string from a proprietary block, and return the remaining data for external parsers.
+/// Parse the header string from a proprietary block, and return the remaining 
+/// data for external parsers.
 pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     let (i, header) = null_terminated_str(i)?;
     return Ok((
@@ -416,7 +425,8 @@ pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     ));
 }
 
-/// Parse a complete SOR file, extracting all known and proprietary blocks to a SORFile struct.
+/// Parse a complete SOR file, extracting all known and proprietary blocks to a 
+/// SORFile struct.
 pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     let mut general_parameters: Option<GeneralParametersBlock> = None;
     let mut supplier_parameters: Option<SupplierParametersBlock> = None;
@@ -470,9 +480,11 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     ));
 }
 
-/// Given an input file and a block header, extracts the bytes for that block only using the map's description of the length of the block.
-/// This allows for the parsers in this file to work on a single block at a time without strict ordering, as the SOR file does not
-/// require a specific sequence of blocks.
+/// Given an input file and a block header, extracts the bytes for that block 
+/// only using the map's description of the length of the block.
+/// This allows for the parsers in this file to work on a single block at a 
+/// time without strict ordering, as the SOR file does not require a specific 
+/// sequence of blocks.
 fn extract_block_data<'a>(data: &'a [u8], header: &str) -> &'a [u8] {
     let res = map_block(data);
     let map = res.unwrap().1;
