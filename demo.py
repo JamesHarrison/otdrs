@@ -1,5 +1,6 @@
 #!/bin/env python3
 # Simple demo script to call otdrs, parse out a few variables, and draw a data point graph with the front panel marked as a line with everything scaled appropriately
+# Assumes metres are the units used in the SOR file.
 import numpy as np
 import json
 import subprocess

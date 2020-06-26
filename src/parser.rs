@@ -11,19 +11,30 @@ use nom::{
     IResult,
 };
 use std::str;
+
+/// Block header string for the map block
 const BLOCK_ID_MAP: &str = "Map";
+/// Block header string for the general parameters block
 const BLOCK_ID_GENPARAMS: &str = "GenParams";
+/// Block header string for the supplier parameters block
 const BLOCK_ID_SUPPARAMS: &str = "SupParams";
+/// Block header string for the fixed parameters block
 const BLOCK_ID_FXDPARAMS: &str = "FxdParams";
+/// Block header string for the key events block
 const BLOCK_ID_KEYEVENTS: &str = "KeyEvents";
+/// Block header string for the link parameters block
 const BLOCK_ID_LNKPARAMS: &str = "LnkParams";
+/// Block header string for the data points block
 const BLOCK_ID_DATAPTS: &str = "DataPts";
+/// Block header string for the checksum block
 const BLOCK_ID_CHECKSUM: &str = "Cksum";
 
+/// Parses to look for a block header, null-terminated, and returns the bytes (sans null character)
 fn block_header<'a>(i: &'a [u8], header: &str) -> IResult<&'a [u8], &'a [u8]> {
     terminated(tag(header), tag("\0"))(i)
 }
 
+/// Parse a block information sequence within the map block
 fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
     let (i, header) = null_terminated_str(i)?;
     let (i, revision_number) = le_u16(i)?;
@@ -38,6 +49,7 @@ fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
     ));
 }
 
+/// Parses the map block in a SOR file, which contains information about the location of all blocks in the file
 pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, _) = block_header(i, BLOCK_ID_MAP)?;
     let (i, revision_number) = le_u16(i)?;
@@ -56,10 +68,12 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     ));
 }
 
+/// Parse an incoming byte sequence until a null character is found and return the bytes to that point, consuming the null
 fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
     terminated(take_until("\0"), tag("\0"))(i)
 }
 
+/// Convert a series of bytes into a string, handling zero-length input
 fn parse_string(input: &[u8]) -> &str {
     if input.len() > 0 {
         return str::from_utf8(input).unwrap();
@@ -68,26 +82,21 @@ fn parse_string(input: &[u8]) -> &str {
     }
 }
 
+/// Parse a null-terminated variable length string
 pub fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
     let (i, seg) = null_terminated_chunk(i)?;
     let string = parse_string(seg);
     return Ok((i, string));
 }
-pub fn fixed_length_str(i: &[u8], len: usize) -> IResult<&[u8], &str> {
-    if len == 2 {
-        let (i, seg) = take(2u8)(i)?;
-        let string = parse_string(seg);
-        return Ok((i, string));
-    } else if len == 6 {
-        let (i, seg) = take(6u8)(i)?;
-        let string = parse_string(seg);
-        return Ok((i, string));
-    } else {
-        // TODO: it would be nice to make this less crappy, this whole if-then-panic thing is a bit crap
-        panic!("This length of fixed-length string is not implemented")
-    }
+
+/// Parse a fixed-length string of the given number of bytes
+pub fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
+    let (i, seg) = take(n_bytes * (1u8 as usize))(i)?;
+    let string = parse_string(seg);
+    return Ok((i, string));
 }
 
+/// Parse the general parameters block, which contains acquisition information as well as locations/identifiers.
 pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_GENPARAMS)?;
     let (i, language_code) = fixed_length_str(i, 2)?;
@@ -123,6 +132,7 @@ pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParameter
     ));
 }
 
+/// Parse the supplier parameters block, which contains information about the OTDR equipment used.
 pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_SUPPARAMS)?;
     let (i, supplier_name) = null_terminated_str(i)?;
@@ -146,6 +156,7 @@ pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParamet
     ));
 }
 
+/// Parse the fixed paramters block, which contains most of the information required to interpret the stored data.
 pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_FXDPARAMS)?;
     let (i, date_time_stamp) = le_u32(i)?;
@@ -211,6 +222,7 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     ));
 }
 
+/// Parse any key event, except for the final key event, which is parsed with last_key_event as it differs structurally
 fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
@@ -245,6 +257,7 @@ fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     ));
 }
 
+/// Parse the final key event in the key events block, which contains much of the end-to-end loss definitions
 fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
@@ -292,6 +305,7 @@ fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     ));
 }
 
+/// Parse the key events block
 pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_KEYEVENTS)?;
     let (i, number_of_key_events) = le_i16(i)?;
@@ -308,6 +322,7 @@ pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
 }
 
 // TODO: Test this, no test data to hand so this is probably correct
+/// Parse a landmark from the link parameters block
 pub fn landmark<'a>(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, landmark_number) = le_i16(i)?;
@@ -342,6 +357,7 @@ pub fn landmark<'a>(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
 }
 
 // TODO: Test this, no test data to hand so this is probably correct
+/// Extract link parameters and encoded landmarks from the LinkParams block.
 pub fn link_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], LinkParameters<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, number_of_landmarks) = le_i16(i)?;
@@ -355,7 +371,7 @@ pub fn link_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], LinkParameters<'_>>
     ));
 }
 
-
+/// Parse the data points at a defined scale factor within the DataPoints block
 pub fn data_points_at_scale_factor(i: &[u8]) -> IResult<&[u8], DataPointsAtScaleFactor> {
     let (i, n_points) = le_i32(i)?;
     let (i, scale_factor) = le_i16(i)?;
@@ -370,11 +386,15 @@ pub fn data_points_at_scale_factor(i: &[u8]) -> IResult<&[u8], DataPointsAtScale
     ));
 }
 
+/// Parse the DataPoints block and extract all the points for each scale factor
 pub fn data_points_block<'a>(i: &[u8]) -> IResult<&[u8], DataPoints> {
     let (i, _) = block_header(i, BLOCK_ID_DATAPTS)?;
     let (i, number_of_data_points) = le_i32(i)?;
     let (i, total_number_scale_factors_used) = le_i16(i)?;
-    let (i, scale_factors) = count(data_points_at_scale_factor, total_number_scale_factors_used as usize)(i)?;
+    let (i, scale_factors) = count(
+        data_points_at_scale_factor,
+        total_number_scale_factors_used as usize,
+    )(i)?;
     return Ok((
         i,
         DataPoints {
@@ -384,7 +404,7 @@ pub fn data_points_block<'a>(i: &[u8]) -> IResult<&[u8], DataPoints> {
         },
     ));
 }
-
+/// Parse the header string from a proprietary block, and return the remaining data for external parsers.
 pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     let (i, header) = null_terminated_str(i)?;
     return Ok((
@@ -396,6 +416,7 @@ pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     ));
 }
 
+/// Parse a complete SOR file, extracting all known and proprietary blocks to a SORFile struct.
 pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     let mut general_parameters: Option<GeneralParametersBlock> = None;
     let mut supplier_parameters: Option<SupplierParametersBlock> = None;
@@ -407,7 +428,7 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     let (_, map) = map_block(i)?;
     for block in &map.block_info {
         // Load the block's data
-        let data = load_file_section(i, block.identifier);
+        let data = extract_block_data(i, block.identifier);
         // Parse it
         if block.identifier == BLOCK_ID_SUPPARAMS {
             let (_, ret) = supplier_parameters_block(data)?;
@@ -449,7 +470,10 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     ));
 }
 
-fn load_file_section<'a>(data: &'a [u8], header: &str) -> &'a [u8] {
+/// Given an input file and a block header, extracts the bytes for that block only using the map's description of the length of the block.
+/// This allows for the parsers in this file to work on a single block at a time without strict ordering, as the SOR file does not
+/// require a specific sequence of blocks.
+fn extract_block_data<'a>(data: &'a [u8], header: &str) -> &'a [u8] {
     let res = map_block(data);
     let map = res.unwrap().1;
     let mut offset: usize = map.block_size as usize;
@@ -476,7 +500,7 @@ fn load_file_section<'a>(data: &'a [u8], header: &str) -> &'a [u8] {
 #[cfg(test)]
 fn test_load_file_section(header: &str) -> &[u8] {
     let data = include_bytes!("../data/example1-noyes-ofl280.sor");
-    return load_file_section(data, header);
+    return extract_block_data(data, header);
 }
 
 #[test]
