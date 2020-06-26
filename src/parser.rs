@@ -83,14 +83,14 @@ fn parse_string(input: &[u8]) -> &str {
 }
 
 /// Parse a null-terminated variable length string
-pub fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
+fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
     let (i, seg) = null_terminated_chunk(i)?;
     let string = parse_string(seg);
     return Ok((i, string));
 }
 
 /// Parse a fixed-length string of the given number of bytes
-pub fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
+fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
     let (i, seg) = take(n_bytes * (1u8 as usize))(i)?;
     let string = parse_string(seg);
     return Ok((i, string));
@@ -223,7 +223,7 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
 }
 
 /// Parse any key event, except for the final key event, which is parsed with last_key_event as it differs structurally
-fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
+pub fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -258,7 +258,7 @@ fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
 }
 
 /// Parse the final key event in the key events block, which contains much of the end-to-end loss definitions
-fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
+pub fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
