@@ -10,7 +10,7 @@ Where the parser cannot reliably extract information it is omitted; in this sens
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
-![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg)
+![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg) ![Cargo](https://img.shields.io/crates/v/otdrs) ![Downloads](https://img.shields.io/crates/d/otdrs)
 
 ## Usage
 
@@ -30,7 +30,7 @@ This is absolutely not guaranteed to work in all cases with all files or produce
 
 As `otdrs` handles arbitrary binary input and performs some arithmetic on it which can potentially lead to underruns and overruns as well as exciting undefined behaviour.
 
-While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. ![cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur.
+While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur.
 
 Checking of result validity is not performed on all fields, and users of the tool should take care to avoid trusting input parsed from SOR files. Sanitise your inputs.
 
@@ -63,6 +63,11 @@ Further test files are desired and should be submitted to the author or as a pul
 To actually interpet any of this data correctly you are going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
 
 This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible for applications to perform correct interpretation. Actually locating events and measuring cable data based on OTDR data requires careful consideration of data offsets (e.g. front panel to user offset, scaling factors, etc).
+
+## Versions
+
+* 0.2.0 - restructured to allow use as a library, added fuzzing and fixed a number of bounds-check/error propogation problems
+* 0.1.0 - initial release
 
 ## License
 
