@@ -1,2 +1,5 @@
 /target
 test.json
+/fuzz/artifacts
+/fuzz/corpus
+/fuzz/target

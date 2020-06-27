@@ -1,6 +1,6 @@
 [package]
 name = "otdrs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["James Harrison <james@talkunafraid.co.uk>"]
 edition = "2018"
 description = "otdrs is a tool to convert OTDR Bellcore SOR files to Serdes-compatible structs and JSON thereafter"
@@ -16,8 +16,13 @@ nom = "5"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 
+[lib]
+name = "otdrs"
+path = "src/lib.rs"
+
 [[bin]]
 name = "otdrs"
+path = "src/otdrs.rs"
 test = true
 doc = true
 bench = true

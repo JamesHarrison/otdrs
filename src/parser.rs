@@ -1,14 +1,18 @@
-use crate::{
+
+use crate::types::{
     BlockInfo, DataPoints, DataPointsAtScaleFactor, FixedParametersBlock, GeneralParametersBlock,
     KeyEvent, KeyEvents, Landmark, LastKeyEvent, LinkParameters, MapBlock, ProprietaryBlock,
     SORFile, SupplierParametersBlock,
 };
 use nom::{
     bytes::complete::{tag, take, take_until},
-    multi::count,
+    multi::{count},
     number::complete::{le_i16, le_i32, le_u16, le_u32},
     sequence::terminated,
+    combinator::map_res,
     IResult,
+    Err,
+    error::ErrorKind
 };
 use std::str;
 
@@ -57,8 +61,11 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, revision_number) = le_u16(i)?;
     let (i, block_size) = le_i32(i)?;
     let (i, block_count) = le_i16(i)?;
-    let blocks_to_read: usize = (block_count - 1) as usize;
-    let (i, blocks) = count(map_block_info, blocks_to_read)(i)?;
+    let blocks_to_read= block_count.checked_sub(1);
+    if blocks_to_read == None {
+        return Err(Err::Failure((i, ErrorKind::Fix)));
+    }
+    let (i, blocks) = count(map_block_info, blocks_to_read.unwrap() as usize)(i)?;
     return Ok((
         i,
         MapBlock {
@@ -76,27 +83,15 @@ fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
     terminated(take_until("\0"), tag("\0"))(i)
 }
 
-/// Convert a series of bytes into a string, handling zero-length input
-fn parse_string(input: &[u8]) -> &str {
-    if input.len() > 0 {
-        return str::from_utf8(input).unwrap();
-    } else {
-        return "";
-    }
-}
 
 /// Parse a null-terminated variable length string
 fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
-    let (i, seg) = null_terminated_chunk(i)?;
-    let string = parse_string(seg);
-    return Ok((i, string));
+    map_res(null_terminated_chunk,  |s|str::from_utf8(s))(i)
 }
 
 /// Parse a fixed-length string of the given number of bytes
 fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
-    let (i, seg) = take(n_bytes * (1u8 as usize))(i)?;
-    let string = parse_string(seg);
-    return Ok((i, string));
+    map_res(take(n_bytes * (1u8 as usize)),  |s|str::from_utf8(s))(i)
 }
 
 /// Parse the general parameters block, which contains acquisition information 
@@ -425,6 +420,7 @@ pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     ));
 }
 
+
 /// Parse a complete SOR file, extracting all known and proprietary blocks to a 
 /// SORFile struct.
 pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
@@ -438,7 +434,8 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
     let (_, map) = map_block(i)?;
     for block in &map.block_info {
         // Load the block's data
-        let data = extract_block_data(i, block.identifier);
+        let default: &[u8] = &[0u8];
+        let data = extract_block_data(i, block.identifier).unwrap_or(default);
         // Parse it
         if block.identifier == BLOCK_ID_SUPPARAMS {
             let (_, ret) = supplier_parameters_block(data)?;
@@ -485,34 +482,40 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
 /// This allows for the parsers in this file to work on a single block at a 
 /// time without strict ordering, as the SOR file does not require a specific 
 /// sequence of blocks.
-fn extract_block_data<'a>(data: &'a [u8], header: &str) -> &'a [u8] {
+fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a str> {
     let res = map_block(data);
     let map = res.unwrap().1;
     let mut offset: usize = map.block_size as usize;
     let mut len: usize = 0;
+    
     for block in map.block_info {
         len = block.size as usize;
-        // if header.ends_with("\0") {
-        //     // Ignore the incoming \0 on the header definition to match the null-stripped line in the parsed block
-        //     if block.identifier == &header[0..(header.len() - 1)] {
-        //         break;
-        //     }
-        // } else {
         if block.identifier == header {
             break;
         }
-        // }
-        offset += block.size as usize;
+        let (offset_value, overflow) = offset.overflowing_add(block.size as usize);
+        offset = offset_value;
+        if overflow == true {
+            return Err("Error with block data - offset value is incorrect");
+        }
     }
-    // println!("reading from {} to {}", offset, (offset+len));
-    // println!("data: {:?}", &data[offset..(offset+len)]);
-    return &data[offset..(offset + len)];
+    let (final_byte, overflow) = offset.overflowing_add(len);
+    if overflow == true {
+        return Err("Error with block data - final byte value is incorrect");
+    }
+    if offset > data.len() {
+        return Err("Error with block data - reported block position is incorrect");
+    }
+    if (final_byte) > data.len() {
+        return Err("Error with block data - reported block position or length is incorrect");
+    }
+    return Ok(&data[offset..final_byte]);
 }
 
 #[cfg(test)]
 fn test_load_file_section(header: &str) -> &[u8] {
     let data = include_bytes!("../data/example1-noyes-ofl280.sor");
-    return extract_block_data(data, header);
+    return extract_block_data(data, header).unwrap();
 }
 
 #[test]
