@@ -26,11 +26,20 @@ This is the author's first major Rust project, so use with caution.
 
 This is absolutely not guaranteed to work in all cases with all files or produce correct output in all cases (or indeed any). Check the output with the files you're using and a known-good viewer if you care about what you're doing.
 
+### Security Considerations
+
+As `otdrs` handles arbitrary binary input and performs some arithmetic on it which can potentially lead to underruns and overruns as well as exciting undefined behaviour.
+
+While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. ![cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur.
+
+Checking of result validity is not performed on all fields, and users of the tool should take care to avoid trusting input parsed from SOR files. Sanitise your inputs.
+
 ## Known Issues
 
 * The "link parameters" block is not currently decoded, as the author does not have files which contain it for testing. This is not used in common OTDR sets.
 * Testing is not as comprehensive and extensive as it should be
-* There is no application of fixed scaling factors described in SR-4731
+
+There is no application of fixed scaling factors described in SR-4731. This is generally intentional, to permit correct post-processing as required in other applications.
 
 ## Proprietary Blocks
 
@@ -47,13 +56,17 @@ The parser has been tested on SOR files generated from:
 * EXFO MaxTester and FTBx OTDRs
 * EXFO iOLM files exported to SOR from EXFO FastReporter3
 
+Further test files are desired and should be submitted to the author or as a pull request with tests against known values.
+
 ## Interpretation
 
 To actually interpet any of this data correctly you are going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
 
-This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible.
+This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible for applications to perform correct interpretation. Actually locating events and measuring cable data based on OTDR data requires careful consideration of data offsets (e.g. front panel to user offset, scaling factors, etc).
 
 ## License
+
+GPLv3 has been selected specifically to drive improved open source engagement with equipment manufacturers and developers of OTDR processing software in an industry that has struggled with open data exchange, proprietary (and vendor-locked) software, and poor maintenance of existing software.
 
 otdrs - a SOR file parsing tool 
 Copyright (C) 2020 James Harrison
