@@ -312,7 +312,11 @@ pub fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
 pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_KEYEVENTS)?;
     let (i, number_of_key_events) = le_i16(i)?;
-    let (i, key_events) = count(key_event, (number_of_key_events - 1) as usize)(i)?;
+    let (n_key_events, overflowed) = number_of_key_events.overflowing_sub(1);
+    if overflowed == true {
+        return Err(Err::Failure((i, ErrorKind::Fix)));
+    }
+    let (i, key_events) = count(key_event, n_key_events as usize)(i)?;
     let (i, last_key_event) = last_key_event(i)?;
     return Ok((
         i,
