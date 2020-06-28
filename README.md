@@ -10,7 +10,7 @@ Where the parser cannot reliably extract information it is omitted; in this sens
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
-![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg) ![Cargo](https://img.shields.io/crates/v/otdrs) ![Downloads](https://img.shields.io/crates/d/otdrs)
+![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg) [![Cargo](https://img.shields.io/crates/v/otdrs)](https://crates.io/crates/otdrs) [![Downloads](https://img.shields.io/crates/d/otdrs)](https://crates.io/crates/otdrs)
 
 ## Usage
 
