@@ -523,11 +523,47 @@ fn test_parse_file() {
     let data = include_bytes!("../data/example1-noyes-ofl280.sor");
     let res = parse_file(data);
     let sor = res.unwrap().1;
+    let fp = sor.fixed_parameters.unwrap();
     assert_eq!(sor.map.revision_number, 200);
+    assert_eq!(sor.general_parameters.unwrap().nominal_wavelength, 1550);
+    assert_eq!(fp.pulse_widths_used, vec![30]);
     assert_eq!(sor.data_points.unwrap().number_of_data_points, 30000);
     assert_eq!(sor.key_events.unwrap().number_of_key_events, 3);
-    assert_eq!(sor.fixed_parameters.unwrap().date_time_stamp, 1569835674);
+    assert_eq!(fp.date_time_stamp, 1569835674);
+    assert_eq!(fp.averaging_time, 3000);
+    assert_eq!(fp.number_of_averages, 2704);
 }
+
+#[test]
+fn test_parse_anritsu_file() {
+    let data = include_bytes!("../data/example3-anritsu-accessmastermt9085.sor");
+    let res = parse_file(data);
+    let sor = res.unwrap().1;
+    let fp = sor.fixed_parameters.unwrap();
+    assert_eq!(sor.map.revision_number, 200);
+    assert_eq!(sor.general_parameters.unwrap().nominal_wavelength, 1310);
+    assert_eq!(sor.data_points.unwrap().number_of_data_points, 20001);
+    assert_eq!(sor.key_events.unwrap().number_of_key_events, 3);
+    assert_eq!(fp.date_time_stamp, 1592094230);
+    assert_eq!(fp.averaging_time, 30);
+    assert_eq!(fp.number_of_averages, 15360);
+}
+
+#[test]
+fn test_parse_exfo_ftb4_file() {
+    let data = include_bytes!("../data/example4-exfo-ftb4ftbx730c-mfdgainer-1310nm.sor");
+    let res = parse_file(data);
+    let sor = res.unwrap().1;
+    let fp = sor.fixed_parameters.unwrap();
+    assert_eq!(sor.map.revision_number, 200);
+    assert_eq!(sor.general_parameters.unwrap().nominal_wavelength, 1310);
+    assert_eq!(sor.data_points.unwrap().number_of_data_points, 25903);
+    assert_eq!(sor.key_events.unwrap().number_of_key_events, 9);
+    assert_eq!(fp.date_time_stamp, 1593101318);
+    assert_eq!(fp.averaging_time, 7);
+    assert_eq!(fp.number_of_averages, 4563);
+}
+
 #[test]
 fn test_data_points_block() {
     let data = test_load_file_section(BLOCK_ID_DATAPTS);
