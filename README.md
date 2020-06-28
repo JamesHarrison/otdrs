@@ -53,7 +53,7 @@ The parser has been tested on SOR files generated from:
 
 * Noyes OFL280 OTDRs, including those re-exported from EXFO FastReporter3
 * Anritsu Access Master OTDRs
-* EXFO MaxTester and FTBx OTDRs
+* EXFO MaxTester 730C and FTB-4/FTBx730 OTDRs
 * EXFO iOLM files exported to SOR from EXFO FastReporter3
 
 Further test files are desired and should be submitted to the author or as a pull request with tests against known values.
@@ -63,6 +63,14 @@ Further test files are desired and should be submitted to the author or as a pul
 To actually interpet any of this data correctly you are going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
 
 This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible for applications to perform correct interpretation. Actually locating events and measuring cable data based on OTDR data requires careful consideration of data offsets (e.g. front panel to user offset, scaling factors, etc).
+
+### Vendor Quirks
+
+As with pretty much every standard out there, every vendor has interpreted it differently. For one example, some Noyes OTDRs store a 30 second averaging period as `3000` whereas EXFO and Anritsu record it as `30`. The specification, of course, says this should be stored as `300`. Professional software struggles with this - for instance, EXFO's FastReporter3 software misinterprets the Noyes result.
+
+Documentation of storage quirks compared to "standard" behaviour such as the above, against *known* behaviour would be helpful for those developing post-processing software; if you have access to test equipment, you can helpfully run a controlled test, write down the *actual* values displayed by the tester etc and store the SOR file directly.
+
+While "fixing" vendor quirks to generate a *standards-compliant* output is not currently in the scope of `otdrs`, this is something that could be added as an optional post-processing step.
 
 ## Versions
 
