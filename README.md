@@ -74,6 +74,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 0.3.0 - switched to using [clap](https://github.com/clap-rs/clap) for command-line argument handling for better error handling, added option to write to file instead of stdout and added [CBOR](https://github.com/pyfisch/cbor) export support
 * 0.2.0 - restructured to allow use as a library, added fuzzing and fixed a number of bounds-check/error propogation problems
 * 0.1.0 - initial release
 
