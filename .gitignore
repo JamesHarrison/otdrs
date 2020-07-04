@@ -1,5 +1,6 @@
 /target
-test.json
+*.json
+*.cbor
 /fuzz/artifacts
 /fuzz/corpus
 /fuzz/target

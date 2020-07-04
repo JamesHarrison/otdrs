@@ -7,22 +7,54 @@
 //! The serde library is used for serialisation, and currently only JSON output 
 //! is supported.
 //! 
-use std::env;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
+// use anyhow::Error;
+// use thiserror::Error;
+
+use clap::Clap;
+/// This doc string acts as a help message when the user runs '--help'
+/// as do all doc strings on fields
+#[derive(Clap)]
+#[clap(version = "0.3.0", author = "James Harrison <james@talkunafraid.co.uk>", about = "otdrs is a conversion utility to convert Telcordia SOR files, used by optical time-domain reflectometry testers, into open formats such as JSON")]
+struct Opts {
+    #[clap(index=1, required=true)]
+    input_filename: String,
+    #[clap(short, long, default_value="json")]
+    format: String,
+    #[clap(short, long, default_value="stdout")]
+    output_filename: String,
+}
+
 /// By default we simply read the file provided as the first argument, and 
 /// print the parsed file as JSON to stdout
-fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    let filename = &args[1];
-    let mut file = File::open(filename)?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let opts: Opts = Opts::parse();
+
+    let mut file = File::open(opts.input_filename)?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
     let parser = otdrs::parser::parse_file(buffer.as_slice());
-    match parser {
-        Ok(res) => print!("{}", serde_json::to_string(&res.1)?),
-        Err(err) => print!("Parse error {}", err),
+    let res = parser.unwrap().1;
+    let out;
+    // let output_file;
+    // 
+    // let mut output_file = File::open(opts.output_filename)?;
+    if opts.format == "json" {
+        out = (&serde_json::to_vec(&res).unwrap()).to_owned();
+    } else if opts.format == "cbor" {
+        out = (&serde_cbor::to_vec(&res).unwrap()).to_owned();
+    } else {
+        panic!("Unimplemented output format");
     }
-    Ok(())
+    if opts.output_filename == "stdout" {
+        let stdout = std::io::stdout();
+        let mut handle = stdout.lock();
+        handle.write_all(&out)?;
+    } else {
+        let mut output_file = File::create(opts.output_filename).unwrap();
+        output_file.write_all(&out)?;
+    }
+    
+    return Ok(());
 }

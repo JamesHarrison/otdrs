@@ -14,11 +14,11 @@ Rust was chosen for its robustness, type-safety, and the excellent `nom` parser 
 
 ## Usage
 
-`otdrs` takes one argument, the path to a SOR file. Its output is a single JSON root which contains the information within the SOR file.
+`otdrs` takes one positional argument, the path to a SOR file. Its output is a single JSON or CBOR blob which contains the information within the SOR file; flags are used to set the output path (default is stdout) or the format to output. `otdrs --help` shows the available options.
 
 ### Installing
 
-If you have Rust/Cargo installed you can install otdrs with `cargo install otdrs`.
+If you have Rust/Cargo installed you can install otdrs with `cargo install otdrs`. `otdrs` is not otherwise packaged currently.
 
 ## Code Quality, Conformance/Compliance
 

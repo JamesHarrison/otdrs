@@ -1,4 +1,3 @@
-
 use crate::types::{
     BlockInfo, DataPoints, DataPointsAtScaleFactor, FixedParametersBlock, GeneralParametersBlock,
     KeyEvent, KeyEvents, Landmark, LastKeyEvent, LinkParameters, MapBlock, ProprietaryBlock,
