@@ -2,13 +2,20 @@
 # Simple demo script to call otdrs, parse out a few variables, and draw a data point graph with the front panel marked as a line with everything scaled appropriately
 # Assumes metres are the units used in the SOR file.
 import numpy as np
+# You can use CBOR instead of JSON by swapping this and adding the --format cbor option below
+# import cbor
 import json
 import subprocess
 import matplotlib.pyplot as plt
-# This works on Windows - modify path to suit, or work on indirectly generated data
-proc = subprocess.Popen(["target/debug/otdrs.exe", "data/example1-noyes-ofl280.sor"], stdout=subprocess.PIPE)
+# Requires otdrs on the PATH - "cargo install otdrs" will achieve this, or include target/debug on your PATH
+# CBOR version:
+# proc = subprocess.Popen(["otdrs", "--format", "cbor", "data/example1-noyes-ofl280.sor"], stdout=subprocess.PIPE)
+# JSON version:
+proc = subprocess.Popen(["otdrs", "data/example1-noyes-ofl280.sor"], stdout=subprocess.PIPE)
 out = proc.communicate()[0]
 # Parse the data - we could load direct with pandas but want to be more prescriptive
+# CBOR version:
+# otdrs_out = cbor.loads(out)
 otdrs_out = json.loads(out)
 # some distance scaling stuff
 speed_of_light = 299792458.0 # m/s
