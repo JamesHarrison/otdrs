@@ -16,21 +16,21 @@ use nom::{
 use std::str;
 
 /// Block header string for the map block
-const BLOCK_ID_MAP: &str = "Map";
+pub const BLOCK_ID_MAP: &str = "Map";
 /// Block header string for the general parameters block
-const BLOCK_ID_GENPARAMS: &str = "GenParams";
+pub const BLOCK_ID_GENPARAMS: &str = "GenParams";
 /// Block header string for the supplier parameters block
-const BLOCK_ID_SUPPARAMS: &str = "SupParams";
+pub const BLOCK_ID_SUPPARAMS: &str = "SupParams";
 /// Block header string for the fixed parameters block
-const BLOCK_ID_FXDPARAMS: &str = "FxdParams";
+pub const BLOCK_ID_FXDPARAMS: &str = "FxdParams";
 /// Block header string for the key events block
-const BLOCK_ID_KEYEVENTS: &str = "KeyEvents";
+pub const BLOCK_ID_KEYEVENTS: &str = "KeyEvents";
 /// Block header string for the link parameters block
-const BLOCK_ID_LNKPARAMS: &str = "LnkParams";
+pub const BLOCK_ID_LNKPARAMS: &str = "LnkParams";
 /// Block header string for the data points block
-const BLOCK_ID_DATAPTS: &str = "DataPts";
+pub const BLOCK_ID_DATAPTS: &str = "DataPts";
 /// Block header string for the checksum block
-const BLOCK_ID_CHECKSUM: &str = "Cksum";
+pub const BLOCK_ID_CHECKSUM: &str = "Cksum";
 
 /// Parses to look for a block header, null-terminated, and returns the bytes 
 /// (sans null character)

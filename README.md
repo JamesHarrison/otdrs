@@ -1,12 +1,14 @@
 # otdrs
 
-`otdrs` is a Rust implementation of a SOR file (Bellcore OTDR interchange format, specified in Telcordia SR-4731) parser.
+`otdrs` is a Rust implementation of a SOR file (Bellcore OTDR interchange format, specified in Telcordia SR-4731) parser and generator.
 
-It is intended as an absolute minimal parser implementation to produce a translation from the binary format to open, self-documenting formats, to permit easy development of analysis tools without having to deal with the complexities of managing a binary format that is broadly undocumented and difficult to parse.
+It is intended as an absolute minimal parser implementation to produce a translation from the binary format to open, self-documenting formats, to permit easy development of analysis tools without having to deal with the complexities of managing a binary format that is broadly undocumented and difficult to parse. It also provides Rust primitives for OTDR files and a writer to allow files to be loaded, modified, and written back.
 
 Wherever possible, translation preserves the input format; otdrs does not try to fix peculiarities of particular test equipment or post-processing software or work around quirks in their input, except where they would break parsing of the format. No normalisation is attempted.
 
 Where the parser cannot reliably extract information it is omitted; in this sense, `otdrs` is a best-effort parser.
+
+Writing of files is performed with as much care as possible and the optional checksum is computed. Generated files open without issue in several professional applications, and proprietary data is preserved losslessly.
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
@@ -37,7 +39,7 @@ Checking of result validity is not performed on all fields, and users of the too
 ## Known Issues
 
 * The "link parameters" block is not currently decoded, as the author does not have files which contain it for testing. This is not used in common OTDR sets.
-* Testing is not as comprehensive and extensive as it should be
+* Testing is not as comprehensive and extensive as it should be, particularly for writing files.
 
 There is no application of fixed scaling factors described in SR-4731. This is generally intentional, to permit correct post-processing as required in other applications.
 
@@ -46,6 +48,14 @@ There is no application of fixed scaling factors described in SR-4731. This is g
 While SOR files are standardised, not all of the content is; there are a set of standard and required blocks for the basic information, and otdrs only attempts to parse the standard blocks in a SOR file.
 
 The content of proprietary blocks is dumped for analysis by upstream tools that may either have knowledge of proprietary formats or wish to simply know of the existence of such blocks. The map block will in all cases list all blocks within the file.
+
+## Writing SORs
+
+`otdrs` has experimental support for generating SORs from Rust data structures. Strictly, the map block is heavily recomputed when writing; a BlockInfo block with a revision number and header will be expected for all blocks, but sizes and counters are dynamically generated.
+
+Editors are responsible for ensuring that any modification of data elsewhere in the file makes sense, e.g. if the number of points within a `DataPointsAtScaleFactor` struct is changed, then the `n_points` field must be amended by the editor; `otdrs` will not do this for you.
+
+Currently, landmarks and `LinkParameters` are not written out.
 
 ## Testing
 
@@ -56,11 +66,13 @@ The parser has been tested on SOR files generated from:
 * EXFO MaxTester 730C and FTB-4/FTBx730 OTDRs
 * EXFO iOLM files exported to SOR from EXFO FastReporter3
 
+Round-trip testing has also confirmed that all of the above files can be read and written out by `otdrs` with no loss or alteration of data.
+
 Further test files are desired and should be submitted to the author or as a pull request with tests against known values.
 
 ## Interpretation
 
-To actually interpet any of this data correctly you are going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
+To actually interpet any of this data correctly you are probably going to need to read SR-4731, which can be found [here](https://telecom-info.telcordia.com/site-cgi/ido/docs.cgi?ID=SEARCH&DOCUMENT=SR-4731&) for around $750.
 
 This parser makes no attempt to correctly interpret the resulting data from the SOR file format, merely to make it accessible for applications to perform correct interpretation. Actually locating events and measuring cable data based on OTDR data requires careful consideration of data offsets (e.g. front panel to user offset, scaling factors, etc).
 
@@ -74,6 +86,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 0.4.0 - added SORFile#to_bytes and a whole bunch of related functions and macros which altogether mean that `otdrs` can now write OTDR files
 * 0.3.0 - switched to using [clap](https://github.com/clap-rs/clap) for command-line argument handling for better error handling, added option to write to file instead of stdout and added [CBOR](https://github.com/pyfisch/cbor) export support
 * 0.2.0 - restructured to allow use as a library, added fuzzing and fixed a number of bounds-check/error propogation problems
 * 0.1.0 - initial release
@@ -83,7 +96,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 GPLv3 has been selected specifically to drive improved open source engagement with equipment manufacturers and developers of OTDR processing software in an industry that has struggled with open data exchange, proprietary (and vendor-locked) software, and poor maintenance of existing software.
 
 otdrs - a SOR file parsing tool 
-Copyright (C) 2020 James Harrison
+Copyright (C) 2021 James Harrison
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -1,6 +1,9 @@
 /target
 *.json
 *.cbor
+test_*.bin
+test_*.sor
 /fuzz/artifacts
+/fuzz/coverage
 /fuzz/corpus
 /fuzz/target
