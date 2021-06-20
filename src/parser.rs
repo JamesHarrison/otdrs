@@ -11,7 +11,7 @@ use nom::{
     combinator::map_res,
     IResult,
     Err,
-    error::ErrorKind
+    error::{Error, ErrorKind}
 };
 use std::str;
 
@@ -62,7 +62,7 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, block_count) = le_i16(i)?;
     let blocks_to_read= block_count.checked_sub(1);
     if blocks_to_read == None {
-        return Err(Err::Failure((i, ErrorKind::Fix)));
+        return Err(Err::Failure(Error{input: i, code: ErrorKind::Fix}));
     }
     let (i, blocks) = count(map_block_info, blocks_to_read.unwrap() as usize)(i)?;
     return Ok((
@@ -313,7 +313,7 @@ pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
     let (i, number_of_key_events) = le_i16(i)?;
     let (n_key_events, overflowed) = number_of_key_events.overflowing_sub(1);
     if overflowed == true {
-        return Err(Err::Failure((i, ErrorKind::Fix)));
+        return Err(Err::Failure(Error{input: i, code: ErrorKind::Fix}));
     }
     let (i, key_events) = count(key_event, n_key_events as usize)(i)?;
     let (i, last_key_event) = last_key_event(i)?;

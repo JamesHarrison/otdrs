@@ -1,6 +1,6 @@
 [package]
 name = "otdrs"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["James Harrison <james@talkunafraid.co.uk>"]
 edition = "2018"
 description = "otdrs is a tool to convert OTDR Bellcore SOR files to Serdes-compatible structs and JSON/CBOR thereafter, usable as a Rust library or as a standalone tool; it can also write SORs from Rust data structures"
@@ -12,7 +12,7 @@ repository = "https://github.com/JamesHarrison/otdrs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nom = "5.1.2"
+nom = "6.1.2"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.1"

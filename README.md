@@ -1,14 +1,14 @@
 # otdrs
 
-`otdrs` is a Rust implementation of a SOR file (Bellcore OTDR interchange format, specified in Telcordia SR-4731) parser and generator.
+`otdrs` is a Rust implementation of a SOR file parser and generator. SOR files are used as a storage format for optical time-domain reflectometry (OTDR) tests, which are commonly used to characterise and validate the proper construction of fibre optic networks. SOR is formally known as the Bellcore OTDR interchange format, specified in Telcordia SR-4731, a proprietary standard. OTDR testing involves firing short pulses of light down fibres under test, and measuring the intensity of returned light over time.
 
-It is intended as an absolute minimal parser implementation to produce a translation from the binary format to open, self-documenting formats, to permit easy development of analysis tools without having to deal with the complexities of managing a binary format that is broadly undocumented and difficult to parse. It also provides Rust primitives for OTDR files and a writer to allow files to be loaded, modified, and written back.
+`otdrs` is intended as a minimal but valid and robust parser implementation to enable a translation from the closed binary format to open, self-documenting formats, to permit easy development of analysis tools without having to deal with the complexities of managing a binary format that is broadly undocumented and difficult to parse. It also provides Rust primitives for OTDR files and a writer to allow files to be loaded, modified, and written back.
 
 Wherever possible, translation preserves the input format; otdrs does not try to fix peculiarities of particular test equipment or post-processing software or work around quirks in their input, except where they would break parsing of the format. No normalisation is attempted.
 
 Where the parser cannot reliably extract information it is omitted; in this sense, `otdrs` is a best-effort parser.
 
-Writing of files is performed with as much care as possible and the optional checksum is computed. Generated files open without issue in several professional applications, and proprietary data is preserved losslessly.
+Writing of files is performed with as much care as possible and the optional checksum block is computed. Generated files open without issue in several professional applications, and proprietary data is preserved losslessly.
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
@@ -17,6 +17,8 @@ Rust was chosen for its robustness, type-safety, and the excellent `nom` parser 
 ## Usage
 
 `otdrs` takes one positional argument, the path to a SOR file. Its output is a single JSON or CBOR blob which contains the information within the SOR file; flags are used to set the output path (default is stdout) or the format to output. `otdrs --help` shows the available options.
+
+A post-processing example is shown in the `demo.py` script in this repository, which will plot the data from an OTDR file.
 
 ### Installing
 
@@ -73,7 +75,7 @@ This is absolutely not guaranteed to work in all cases with all files or produce
 
 As `otdrs` handles arbitrary binary input and performs some arithmetic on it which can potentially lead to underruns and overruns as well as exciting undefined behaviour.
 
-While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur.
+While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur, including through writing and round-tripping OTDR files.
 
 Checking of result validity is not performed on all fields, and users of the tool should take care to avoid trusting input parsed from SOR files. Sanitise your inputs.
 
@@ -92,11 +94,11 @@ The content of proprietary blocks is dumped for analysis by upstream tools that 
 
 ## Writing SORs
 
-`otdrs` has experimental support for generating SORs from Rust data structures. Strictly, the map block is heavily recomputed when writing; a BlockInfo block with a revision number and header will be expected for all blocks, but sizes and counters are dynamically generated.
+`otdrs` has experimental support for generating SORs from Rust data structures. Strictly, the map block is heavily recomputed when writing; a BlockInfo block with a revision number and header will be expected for all blocks, but sizes and counters are dynamically generated. This is because it is practically impossible (or very difficult, at least) to compute sizes before serialising data, so this is best done at the point of writing.
 
 Editors are responsible for ensuring that any modification of data elsewhere in the file makes sense, e.g. if the number of points within a `DataPointsAtScaleFactor` struct is changed, then the `n_points` field must be amended by the editor; `otdrs` will not do this for you.
 
-Currently, landmarks and `LinkParameters` are not written out.
+Currently, landmarks and `LinkParameters` are not written out, as these are very rarely used in practice and no example data is currently available to support testing.
 
 ## Testing
 
@@ -127,6 +129,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 0.4.1 - upgraded nom to 6.1.2, improved README and demo scripts
 * 0.4.0 - added SORFile#to_bytes and a whole bunch of related functions and macros which altogether mean that `otdrs` can now write OTDR files
 * 0.3.0 - switched to using [clap](https://github.com/clap-rs/clap) for command-line argument handling for better error handling, added option to write to file instead of stdout and added [CBOR](https://github.com/pyfisch/cbor) export support
 * 0.2.0 - restructured to allow use as a library, added fuzzing and fixed a number of bounds-check/error propogation problems
@@ -136,7 +139,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 GPLv3 has been selected specifically to drive improved open source engagement with equipment manufacturers and developers of OTDR processing software in an industry that has struggled with open data exchange, proprietary (and vendor-locked) software, and poor maintenance of existing software.
 
-otdrs - a SOR file parsing tool 
+otdrs - a SOR file parsing tool
 Copyright (C) 2021 James Harrison
 
 This program is free software: you can redistribute it and/or modify
