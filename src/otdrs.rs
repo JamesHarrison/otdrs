@@ -11,12 +11,11 @@ use std::fs::File;
 use std::io::prelude::*;
 // use anyhow::Error;
 // use thiserror::Error;
-
-use clap::Clap;
+use clap::Parser;
 /// This doc string acts as a help message when the user runs '--help'
 /// as do all doc strings on fields
-#[derive(Clap)]
-#[clap(version = "0.3.0", author = "James Harrison <james@talkunafraid.co.uk>", about = "otdrs is a conversion utility to convert Telcordia SOR files, used by optical time-domain reflectometry testers, into open formats such as JSON")]
+#[derive(Parser)]
+#[clap(version = "0.4.2", author = "James Harrison <james@talkunafraid.co.uk>", about = "otdrs is a conversion utility to convert Telcordia SOR files, used by optical time-domain reflectometry testers, into open formats such as JSON")]
 struct Opts {
     #[clap(index=1, required=true)]
     input_filename: String,
