@@ -108,6 +108,7 @@ The parser has been tested on SOR files generated from:
 * Anritsu Access Master OTDRs
 * EXFO MaxTester 730C and FTB-4/FTBx730 OTDRs
 * EXFO iOLM files exported to SOR from EXFO FastReporter3
+* EXFO 735C-SM7R modules in centralised PON test deployments (shooting through splitters to high-reflectance devices)
 
 Round-trip testing has also confirmed that all of the above files can be read and written out by `otdrs` with no loss or alteration of data.
 
