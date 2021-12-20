@@ -129,6 +129,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 0.4.2 - upgraded nom to 7.1.0, clap to 3.0.0-rc7
 * 0.4.1 - upgraded nom to 6.1.2, improved README and demo scripts
 * 0.4.0 - added SORFile#to_bytes and a whole bunch of related functions and macros which altogether mean that `otdrs` can now write OTDR files
 * 0.3.0 - switched to using [clap](https://github.com/clap-rs/clap) for command-line argument handling for better error handling, added option to write to file instead of stdout and added [CBOR](https://github.com/pyfisch/cbor) export support
