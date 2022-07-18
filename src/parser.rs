@@ -43,14 +43,14 @@ fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
     let (i, header) = null_terminated_str(i)?;
     let (i, revision_number) = le_u16(i)?;
     let (i, size) = le_i32(i)?;
-    return Ok((
+    Ok((
         i,
         BlockInfo {
             identifier: header,
-            revision_number: revision_number,
-            size: size,
+            revision_number,
+            size,
         },
-    ));
+    ))
 }
 
 /// Parses the map block in a SOR file, which contains information about the 
@@ -64,16 +64,16 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     if blocks_to_read == None {
         return Err(Err::Failure(Error{input: i, code: ErrorKind::Fix}));
     }
-    let (i, blocks) = count(map_block_info, blocks_to_read.unwrap() as usize)(i)?;
-    return Ok((
+    let (i, block_info) = count(map_block_info, blocks_to_read.unwrap() as usize)(i)?;
+    Ok((
         i,
         MapBlock {
-            revision_number: revision_number,
-            block_count: block_count,
-            block_size: block_size,
-            block_info: blocks,
+            revision_number,
+            block_count,
+            block_size,
+            block_info,
         },
-    ));
+    ))
 }
 
 /// Parse an incoming byte sequence until a null character is found and return 
@@ -85,17 +85,20 @@ fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
 
 /// Parse a null-terminated variable length string
 fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
+    #[allow(clippy::redundant_closure)]
     map_res(null_terminated_chunk,  |s|str::from_utf8(s))(i)
 }
 
 /// Parse a fixed-length string of the given number of bytes
+
 fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
+    #[allow(clippy::redundant_closure)]
     map_res(take(n_bytes * (1u8 as usize)),  |s|str::from_utf8(s))(i)
 }
 
 /// Parse the general parameters block, which contains acquisition information 
 /// as well as locations/identifiers.
-pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock<'_>> {
+pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_GENPARAMS)?;
     let (i, language_code) = fixed_length_str(i, 2)?;
     let (i, cable_id) = null_terminated_str(i)?;
@@ -110,29 +113,29 @@ pub fn general_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], GeneralParameter
     let (i, user_offset_distance) = le_i32(i)?;
     let (i, operator) = null_terminated_str(i)?;
     let (i, comment) = null_terminated_str(i)?;
-    return Ok((
+    Ok((
         i,
         GeneralParametersBlock {
-            language_code: language_code,
-            cable_id: cable_id,
-            fiber_id: fiber_id,
-            fiber_type: fiber_type,
-            nominal_wavelength: nominal_wavelength,
-            originating_location: originating_location,
-            terminating_location: terminating_location,
-            cable_code: cable_code,
-            current_data_flag: current_data_flag,
-            user_offset: user_offset,
-            user_offset_distance: user_offset_distance,
-            operator: operator,
-            comment: comment,
+            language_code,
+            cable_id,
+            fiber_id,
+            fiber_type,
+            nominal_wavelength,
+            originating_location,
+            terminating_location,
+            cable_code,
+            current_data_flag,
+            user_offset,
+            user_offset_distance,
+            operator,
+            comment,
         },
-    ));
+    ))
 }
 
 /// Parse the supplier parameters block, which contains information about the 
 /// OTDR equipment used.
-pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock<'_>> {
+pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_SUPPARAMS)?;
     let (i, supplier_name) = null_terminated_str(i)?;
     let (i, otdr_mainframe_id) = null_terminated_str(i)?;
@@ -141,23 +144,23 @@ pub fn supplier_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], SupplierParamet
     let (i, optical_module_sn) = null_terminated_str(i)?;
     let (i, software_revision) = null_terminated_str(i)?;
     let (i, other) = null_terminated_str(i)?;
-    return Ok((
+    Ok((
         i,
         SupplierParametersBlock {
-            supplier_name: supplier_name,
-            otdr_mainframe_id: otdr_mainframe_id,
-            otdr_mainframe_sn: otdr_mainframe_sn,
-            optical_module_id: optical_module_id,
-            optical_module_sn: optical_module_sn,
-            software_revision: software_revision,
-            other: other,
+            supplier_name,
+            otdr_mainframe_id,
+            otdr_mainframe_sn,
+            optical_module_id,
+            optical_module_sn,
+            software_revision,
+            other,
         },
-    ));
+    ))
 }
 
 /// Parse the fixed paramters block, which contains most of the information 
 /// required to interpret the stored data.
-pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'_>> {
+pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_FXDPARAMS)?;
     let (i, date_time_stamp) = le_u32(i)?;
     let (i, units_of_distance) = fixed_length_str(i, 2)?;
@@ -188,43 +191,43 @@ pub fn fixed_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], FixedParametersBlo
     let (i, window_coordinate_2) = le_i32(i)?;
     let (i, window_coordinate_3) = le_i32(i)?;
     let (i, window_coordinate_4) = le_i32(i)?;
-    return Ok((
+    Ok((
         i,
         FixedParametersBlock {
-            date_time_stamp: date_time_stamp,
-            units_of_distance: units_of_distance,
-            actual_wavelength: actual_wavelength,
-            acquisition_offset: acquisition_offset,
-            acquisition_offset_distance: acquisition_offset_distance,
-            total_n_pulse_widths_used: total_n_pulse_widths_used,
-            pulse_widths_used: pulse_widths_used,
-            data_spacing: data_spacing,
-            n_data_points_for_pulse_widths_used: n_data_points_for_pulse_widths_used,
-            group_index: group_index,
-            backscatter_coefficient: backscatter_coefficient,
-            number_of_averages: number_of_averages,
-            averaging_time: averaging_time,
-            acquisition_range: acquisition_range,
-            acquisition_range_distance: acquisition_range_distance,
-            front_panel_offset: front_panel_offset,
-            noise_floor_level: noise_floor_level,
-            noise_floor_scale_factor: noise_floor_scale_factor,
-            power_offset_first_point: power_offset_first_point,
-            loss_threshold: loss_threshold,
-            reflectance_threshold: reflectance_threshold,
-            end_of_fibre_threshold: end_of_fibre_threshold,
-            trace_type: trace_type,
-            window_coordinate_1: window_coordinate_1,
-            window_coordinate_2: window_coordinate_2,
-            window_coordinate_3: window_coordinate_3,
-            window_coordinate_4: window_coordinate_4,
+            date_time_stamp,
+            units_of_distance,
+            actual_wavelength,
+            acquisition_offset,
+            acquisition_offset_distance,
+            total_n_pulse_widths_used,
+            pulse_widths_used,
+            data_spacing,
+            n_data_points_for_pulse_widths_used,
+            group_index,
+            backscatter_coefficient,
+            number_of_averages,
+            averaging_time,
+            acquisition_range,
+            acquisition_range_distance,
+            front_panel_offset,
+            noise_floor_level,
+            noise_floor_scale_factor,
+            power_offset_first_point,
+            loss_threshold,
+            reflectance_threshold,
+            end_of_fibre_threshold,
+            trace_type,
+            window_coordinate_1,
+            window_coordinate_2,
+            window_coordinate_3,
+            window_coordinate_4,
         },
-    ));
+    ))
 }
 
 /// Parse any key event, except for the final key event, which is parsed with 
 /// last_key_event as it differs structurally
-pub fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
+pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -238,29 +241,29 @@ pub fn key_event<'a>(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
     let (i, marker_location_4) = le_i32(i)?;
     let (i, marker_location_5) = le_i32(i)?;
     let (i, comment) = null_terminated_str(i)?;
-    return Ok((
+    Ok((
         i,
         KeyEvent {
-            event_number: event_number,
-            event_propogation_time: event_propogation_time,
-            attenuation_coefficient_lead_in_fiber: attenuation_coefficient_lead_in_fiber,
-            event_loss: event_loss,
-            event_reflectance: event_reflectance,
-            event_code: event_code,
-            loss_measurement_technique: loss_measurement_technique,
-            marker_location_1: marker_location_1,
-            marker_location_2: marker_location_2,
-            marker_location_3: marker_location_3,
-            marker_location_4: marker_location_4,
-            marker_location_5: marker_location_5,
-            comment: comment,
+            event_number,
+            event_propogation_time,
+            attenuation_coefficient_lead_in_fiber,
+            event_loss,
+            event_reflectance,
+            event_code,
+            loss_measurement_technique,
+            marker_location_1,
+            marker_location_2,
+            marker_location_3,
+            marker_location_4,
+            marker_location_5,
+            comment,
         },
-    ));
+    ))
 }
 
 /// Parse the final key event in the key events block, which contains much of 
 /// the end-to-end loss definitions
-pub fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
+pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -281,55 +284,55 @@ pub fn last_key_event<'a>(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
     let (i, optical_return_loss_marker_position_1) = le_i32(i)?;
     let (i, optical_return_loss_marker_position_2) = le_i32(i)?;
 
-    return Ok((
+    Ok((
         i,
         LastKeyEvent {
-            event_number: event_number,
-            event_propogation_time: event_propogation_time,
-            attenuation_coefficient_lead_in_fiber: attenuation_coefficient_lead_in_fiber,
-            event_loss: event_loss,
-            event_reflectance: event_reflectance,
-            event_code: event_code,
-            loss_measurement_technique: loss_measurement_technique,
-            marker_location_1: marker_location_1,
-            marker_location_2: marker_location_2,
-            marker_location_3: marker_location_3,
-            marker_location_4: marker_location_4,
-            marker_location_5: marker_location_5,
-            comment: comment,
-            end_to_end_loss: end_to_end_loss,
-            end_to_end_marker_position_1: end_to_end_marker_position_1,
-            end_to_end_marker_position_2: end_to_end_marker_position_2,
-            optical_return_loss: optical_return_loss,
-            optical_return_loss_marker_position_1: optical_return_loss_marker_position_1,
-            optical_return_loss_marker_position_2: optical_return_loss_marker_position_2,
+            event_number,
+            event_propogation_time,
+            attenuation_coefficient_lead_in_fiber,
+            event_loss,
+            event_reflectance,
+            event_code,
+            loss_measurement_technique,
+            marker_location_1,
+            marker_location_2,
+            marker_location_3,
+            marker_location_4,
+            marker_location_5,
+            comment,
+            end_to_end_loss,
+            end_to_end_marker_position_1,
+            end_to_end_marker_position_2,
+            optical_return_loss,
+            optical_return_loss_marker_position_1,
+            optical_return_loss_marker_position_2,
         },
-    ));
+    ))
 }
 
 /// Parse the key events block
-pub fn key_events_block<'a>(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
+pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_KEYEVENTS)?;
     let (i, number_of_key_events) = le_i16(i)?;
     let (n_key_events, overflowed) = number_of_key_events.overflowing_sub(1);
-    if overflowed == true {
+    if overflowed {
         return Err(Err::Failure(Error{input: i, code: ErrorKind::Fix}));
     }
     let (i, key_events) = count(key_event, n_key_events as usize)(i)?;
     let (i, last_key_event) = last_key_event(i)?;
-    return Ok((
+    Ok((
         i,
         KeyEvents {
-            number_of_key_events: number_of_key_events,
-            key_events: key_events,
-            last_key_event: last_key_event,
+            number_of_key_events,
+            key_events,
+            last_key_event,
         },
-    ));
+    ))
 }
 
 // TODO: Test this, no test data to hand so this is probably correct
 /// Parse a landmark from the link parameters block
-pub fn landmark<'a>(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
+pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, landmark_number) = le_i16(i)?;
     let (i, landmark_code) = fixed_length_str(i, 2)?;
@@ -343,38 +346,38 @@ pub fn landmark<'a>(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
     let (i, units_of_sheath_marks_leaving_landmark) = fixed_length_str(i, 2)?;
     let (i, mode_field_diameter_leaving_landmark) = le_i16(i)?;
     let (i, comment) = null_terminated_str(i)?;
-    return Ok((
+    Ok((
         i,
         Landmark {
-            landmark_number: landmark_number,
-            landmark_code: landmark_code,
-            landmark_location: landmark_location,
-            related_event_number: related_event_number,
-            gps_longitude: gps_longitude,
-            gps_latitude: gps_latitude,
-            fiber_correction_factor_lead_in_fiber: fiber_correction_factor_lead_in_fiber,
-            sheath_marker_entering_landmark: sheath_marker_entering_landmark,
-            sheath_marker_leaving_landmark: sheath_marker_leaving_landmark,
-            units_of_sheath_marks_leaving_landmark: units_of_sheath_marks_leaving_landmark,
-            mode_field_diameter_leaving_landmark: mode_field_diameter_leaving_landmark,
-            comment: comment,
+            landmark_number,
+            landmark_code,
+            landmark_location,
+            related_event_number,
+            gps_longitude,
+            gps_latitude,
+            fiber_correction_factor_lead_in_fiber,
+            sheath_marker_entering_landmark,
+            sheath_marker_leaving_landmark,
+            units_of_sheath_marks_leaving_landmark,
+            mode_field_diameter_leaving_landmark,
+            comment,
         },
-    ));
+    ))
 }
 
 // TODO: Test this, no test data to hand so this is probably correct
 /// Extract link parameters and encoded landmarks from the LinkParams block.
-pub fn link_parameters_block<'a>(i: &[u8]) -> IResult<&[u8], LinkParameters<'_>> {
+pub fn link_parameters_block(i: &[u8]) -> IResult<&[u8], LinkParameters<'_>> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, number_of_landmarks) = le_i16(i)?;
     let (i, landmarks) = count(landmark, number_of_landmarks as usize)(i)?;
-    return Ok((
+    Ok((
         i,
         LinkParameters {
-            number_of_landmarks: number_of_landmarks,
-            landmarks: landmarks,
+            number_of_landmarks,
+            landmarks,
         },
-    ));
+    ))
 }
 
 /// Parse the data points at a defined scale factor within the DataPoints block
@@ -382,18 +385,18 @@ pub fn data_points_at_scale_factor(i: &[u8]) -> IResult<&[u8], DataPointsAtScale
     let (i, n_points) = le_i32(i)?;
     let (i, scale_factor) = le_i16(i)?;
     let (i, data) = count(le_u16, n_points as usize)(i)?;
-    return Ok((
+    Ok((
         i,
         DataPointsAtScaleFactor {
-            n_points: n_points,
-            scale_factor: scale_factor,
-            data: data,
+            n_points,
+            scale_factor,
+            data,
         },
-    ));
+    ))
 }
 
 /// Parse the DataPoints block and extract all the points for each scale factor
-pub fn data_points_block<'a>(i: &[u8]) -> IResult<&[u8], DataPoints> {
+pub fn data_points_block(i: &[u8]) -> IResult<&[u8], DataPoints> {
     let (i, _) = block_header(i, BLOCK_ID_DATAPTS)?;
     let (i, number_of_data_points) = le_i32(i)?;
     let (i, total_number_scale_factors_used) = le_i16(i)?;
@@ -401,32 +404,32 @@ pub fn data_points_block<'a>(i: &[u8]) -> IResult<&[u8], DataPoints> {
         data_points_at_scale_factor,
         total_number_scale_factors_used as usize,
     )(i)?;
-    return Ok((
+    Ok((
         i,
         DataPoints {
-            number_of_data_points: number_of_data_points,
-            total_number_scale_factors_used: total_number_scale_factors_used,
-            scale_factors: scale_factors,
+            number_of_data_points,
+            total_number_scale_factors_used,
+            scale_factors,
         },
-    ));
+    ))
 }
 /// Parse the header string from a proprietary block, and return the remaining 
 /// data for external parsers.
-pub fn proprietary_block<'a>(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
-    let (i, header) = null_terminated_str(i)?;
-    return Ok((
+pub fn proprietary_block(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
+    let (data, header) = null_terminated_str(i)?;
+    Ok((
         &[],
         ProprietaryBlock {
-            header: header,
-            data: i,
+            header,
+            data,
         },
-    ));
+    ))
 }
 
 
 /// Parse a complete SOR file, extracting all known and proprietary blocks to a 
-/// SORFile struct.
-pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
+/// SORFile struct. 
+pub fn parse_file(i: &[u8]) -> IResult<&[u8], SORFile> {
     let mut general_parameters: Option<GeneralParametersBlock> = None;
     let mut supplier_parameters: Option<SupplierParametersBlock> = None;
     let mut fixed_parameters: Option<FixedParametersBlock> = None;
@@ -465,19 +468,19 @@ pub fn parse_file<'a>(i: &[u8]) -> IResult<&[u8], SORFile<'_>> {
             proprietary_blocks.push(ret);
         }
     }
-    return Ok((
+    Ok((
         i,
         SORFile {
-            map: map,
-            general_parameters: general_parameters,
-            supplier_parameters: supplier_parameters,
-            fixed_parameters: fixed_parameters,
-            key_events: key_events,
-            link_parameters: link_parameters,
-            data_points: data_points,
-            proprietary_blocks: proprietary_blocks,
+            map,
+            general_parameters,
+            supplier_parameters,
+            fixed_parameters,
+            key_events,
+            link_parameters,
+            data_points,
+            proprietary_blocks,
         },
-    ));
+    ))
 }
 
 /// Given an input file and a block header, extracts the bytes for that block 
@@ -498,12 +501,12 @@ fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a 
         }
         let (offset_value, overflow) = offset.overflowing_add(block.size as usize);
         offset = offset_value;
-        if overflow == true {
+        if overflow {
             return Err("Error with block data - offset value is incorrect");
         }
     }
     let (final_byte, overflow) = offset.overflowing_add(len);
-    if overflow == true {
+    if overflow {
         return Err("Error with block data - final byte value is incorrect");
     }
     if offset > data.len() {
@@ -512,7 +515,7 @@ fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a 
     if (final_byte) > data.len() {
         return Err("Error with block data - reported block position or length is incorrect");
     }
-    return Ok(&data[offset..final_byte]);
+    Ok(&data[offset..final_byte])
 }
 
 #[cfg(test)]

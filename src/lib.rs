@@ -123,7 +123,7 @@ impl<'a> SORFile<'a> {
         let cs_block = self.gen_checksum_block(&map_bytes).unwrap();
         map_bytes.extend(cs_block);
         
-        return Ok(map_bytes);
+        Ok(map_bytes)
     }
 
     fn gen_map(&self, map: MapBlock) -> Result<Vec<u8>, &str> {
@@ -139,7 +139,7 @@ impl<'a> SORFile<'a> {
             le_integer!(bytes, bi.revision_number);
             le_integer!(bytes, bi.size);
         }
-        return Ok(bytes)
+        Ok(bytes)
     }
 
     fn gen_general_parameters(&self) -> Result<Vec<u8>, &str> {
@@ -159,7 +159,7 @@ impl<'a> SORFile<'a> {
         le_integer!(bytes, gp.user_offset_distance);
         null_terminated_str!(bytes, gp.operator); 
         null_terminated_str!(bytes, gp.comment); 
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_supplier_parameters(&self) -> Result<Vec<u8>, &str> {
@@ -173,7 +173,7 @@ impl<'a> SORFile<'a> {
         null_terminated_str!(bytes, sp.optical_module_sn);
         null_terminated_str!(bytes, sp.software_revision);
         null_terminated_str!(bytes, sp.other);
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_fixed_parameters(&self) -> Result<Vec<u8>, &str> {
@@ -213,7 +213,7 @@ impl<'a> SORFile<'a> {
         le_integer!(bytes, fp.window_coordinate_2);
         le_integer!(bytes, fp.window_coordinate_3);
         le_integer!(bytes, fp.window_coordinate_4);
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_key_events(&self) -> Result<Vec<u8>, &str> {
@@ -255,7 +255,7 @@ impl<'a> SORFile<'a> {
         le_integer!(bytes, events.last_key_event.optical_return_loss);
         le_integer!(bytes, events.last_key_event.optical_return_loss_marker_position_1);
         le_integer!(bytes, events.last_key_event.optical_return_loss_marker_position_2);
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_data_points(&self) -> Result<Vec<u8>, &str> {
@@ -271,14 +271,14 @@ impl<'a> SORFile<'a> {
                 le_integer!(bytes, pt);
             }
         }
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_proprietary_block(&self, pb: &ProprietaryBlock) -> Result<Vec<u8>, &str> {
         let mut bytes: Vec<u8> = Vec::new();
         null_terminated_str!(bytes, pb.header);
         bytes.extend(pb.data);
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     fn gen_checksum_block(&self, data: &Vec<u8>) -> Result<Vec<u8>, &str> {
@@ -287,7 +287,7 @@ impl<'a> SORFile<'a> {
         let crc: Crc<u16> = Crc::<u16>::new(&CRC_16_KERMIT);
         le_integer!(bytes, crc.checksum(data.as_slice()));
 
-        return Ok(bytes);
+        Ok(bytes)
     }
 
 }
@@ -296,7 +296,7 @@ impl<'a> SORFile<'a> {
 #[cfg(test)]
 fn test_sor_load<'a>() -> SORFile<'a> {
     let data = include_bytes!("../data/example4-exfo-ftb4ftbx730c-mfdgainer-1310nm.sor");
-    return parser::parse_file(data).unwrap().1;
+    parser::parse_file(data).unwrap().1
 }
 
 #[test]

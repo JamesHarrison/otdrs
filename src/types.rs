@@ -4,7 +4,7 @@ use serde::Serialize;
 
 /// A BlockInfo struct contains information about a specific block later in the
 /// file, and appears in the MapBlock
-#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
 pub struct BlockInfo<'a> {
     /// Name of the block
     pub identifier: &'a str,
@@ -16,7 +16,7 @@ pub struct BlockInfo<'a> {
 }
 
 /// Every SOR file has a MapBlock which acts as a map to the file's contents
-#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
 pub struct MapBlock<'a> {
     /// Revision number - major (3 digits), minor, cosmetic - for the file as a
     /// whole
@@ -32,7 +32,7 @@ pub struct MapBlock<'a> {
 /// The GeneralParametersBlock is mandatory for the format and contains 
 /// test-identifying information as well as generic information about the test
 /// being run such as the nominal wavelength
-#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
 pub struct GeneralParametersBlock<'a> {
     /// Language code - EN, CN, JP, etc.
     pub language_code: &'a str, 
@@ -69,7 +69,7 @@ pub struct GeneralParametersBlock<'a> {
 /// Supplier parameters describe the OTDR unit itself, such as the optical 
 /// module ID/serial number. Often this block also contains information about 
 /// calibration dates in the "other" field.
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct SupplierParametersBlock<'a> {
     /// Manufacturer of the OTDR
     pub supplier_name: &'a str,
@@ -89,7 +89,7 @@ pub struct SupplierParametersBlock<'a> {
 
 /// Fixed parameters block contains key information for interpreting the test 
 /// data
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct FixedParametersBlock<'a> {
     /// Datestamp - unix epoch seconds, 32-bit. Remember not to do any OTDR 
     /// tests after 2038.
@@ -164,7 +164,7 @@ pub struct FixedParametersBlock<'a> {
 }
 
 /// KeyEvents describe a single event along the fibre path detected by the OTDR
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct KeyEvent<'a> {
     /// Event number - this is from 0 to n
     pub event_number: i16,
@@ -208,7 +208,7 @@ pub struct KeyEvent<'a> {
 
 /// The last key event is as the KeyEvent, with some additional fields; see 
 /// KeyEvent for the documentation of other fields
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct LastKeyEvent<'a> {
     pub event_number: i16,
     pub event_propogation_time: i32,
@@ -239,7 +239,7 @@ pub struct LastKeyEvent<'a> {
 }
 
 /// List of key events and a pointer to the last key event
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct KeyEvents<'a> {
     pub number_of_key_events: i16,
     pub key_events: Vec<KeyEvent<'a>>,
@@ -249,7 +249,7 @@ pub struct KeyEvents<'a> {
 /// Landmarks are a slightly esoteric feature not often used in SOR files for 
 /// field test equipment. They act to relate OTDR events to real-world 
 /// information such as WGS84 GPS data, known fibre MFDs, metre markers, etc
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct Landmark<'a> {
     pub landmark_number: i16,
     /// Landmark code identifies the landmark - see page 27 of the standard for 
@@ -272,7 +272,7 @@ pub struct Landmark<'a> {
 
 /// DataPointsAtScaleFactor is the struct that actually contains the data 
 /// points of the measurements for a given scale factor
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct DataPointsAtScaleFactor {
     /// Number of points in this block
     pub n_points: i32,
@@ -284,7 +284,7 @@ pub struct DataPointsAtScaleFactor {
 
 /// DataPoints holds all the different datasets in this file - one per scale 
 /// factor
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct DataPoints {
     pub number_of_data_points: i32,
     pub total_number_scale_factors_used: i16,
@@ -295,7 +295,7 @@ pub struct DataPoints {
 /// more the likes of network management systems.
 /// Contains a set of landmarks which describe the physical fibre path and may 
 /// relate this to described KeyEvents
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct LinkParameters<'a> {
     pub number_of_landmarks: i16,
     pub landmarks: Vec<Landmark<'a>>,
@@ -305,7 +305,7 @@ pub struct LinkParameters<'a> {
 /// This is mostly used for vendor-specific special sauce, extra data, extra 
 /// analysis, etc.
 /// otdrs extracts the header, and stores the data as an array of bytes.
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct ProprietaryBlock<'a> {
     pub header: &'a str,
     pub data: &'a [u8],
@@ -314,7 +314,7 @@ pub struct ProprietaryBlock<'a> {
 /// SORFile describes a full SOR file. All blocks except MapBlock are Option 
 /// types as we cannot guarantee the parser will find them, but many blocks are 
 /// in fact mandatory in the specification so compliant files will provide them.
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct SORFile<'b> {
     pub map: MapBlock<'b>,
     pub general_parameters: Option<GeneralParametersBlock<'b>>,

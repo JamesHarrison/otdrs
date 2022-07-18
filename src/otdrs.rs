@@ -55,5 +55,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         output_file.write_all(&out)?;
     }
     
-    return Ok(());
+    Ok(())
 }
