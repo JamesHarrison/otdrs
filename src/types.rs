@@ -5,9 +5,9 @@ use serde::Serialize;
 /// A BlockInfo struct contains information about a specific block later in the
 /// file, and appears in the MapBlock
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
-pub struct BlockInfo<'a> {
+pub struct BlockInfo {
     /// Name of the block
-    pub identifier: &'a str,
+    pub identifier: String,
     /// Revision number - major (3 digits), minor, cosmetic
     pub revision_number: u16,
     /// Size in bytes of the block
@@ -17,7 +17,7 @@ pub struct BlockInfo<'a> {
 
 /// Every SOR file has a MapBlock which acts as a map to the file's contents
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
-pub struct MapBlock<'a> {
+pub struct MapBlock {
     /// Revision number - major (3 digits), minor, cosmetic - for the file as a
     /// whole
     pub revision_number: u16, 
@@ -26,33 +26,33 @@ pub struct MapBlock<'a> {
     /// Number of blocks in the file
     pub block_count: i16,
     /// Information on all the blocks in this file
-    pub block_info: Vec<BlockInfo<'a>> 
+    pub block_info: Vec<BlockInfo> 
 }
 
 /// The GeneralParametersBlock is mandatory for the format and contains 
 /// test-identifying information as well as generic information about the test
 /// being run such as the nominal wavelength
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
-pub struct GeneralParametersBlock<'a> {
+pub struct GeneralParametersBlock {
     /// Language code - EN, CN, JP, etc.
-    pub language_code: &'a str, 
+    pub language_code: String, 
     /// Cable identifier
-    pub cable_id: &'a str, 
+    pub cable_id: String, 
     /// Fibre identifier
-    pub fiber_id: &'a str, 
+    pub fiber_id: String, 
     /// Fibre type - this is generally coded as the ITU-T standard definition,
     /// sans letters, e.g. 657, 655.
     pub fiber_type: i16, 
     /// Nominal test wavelength in nm
     pub nominal_wavelength: i16, 
     /// Start location for the test
-    pub originating_location: &'a str, 
+    pub originating_location: String, 
     /// End location for the test
-    pub terminating_location: &'a str, 
+    pub terminating_location: String, 
     /// Cable code - free field
-    pub cable_code: &'a str, 
+    pub cable_code: String, 
     ///  NC for new condition, RC for as-repaired, OT as something else
-    pub current_data_flag: &'a str, 
+    pub current_data_flag: String, 
     /// User offset - This is essentially the launch lead length from the front 
     /// panel offset (provided in the fixed parameters block), in 100ps 
     /// increments
@@ -61,42 +61,42 @@ pub struct GeneralParametersBlock<'a> {
     /// in FixedParametersBlock.units_of_distance
     pub user_offset_distance: i32,
     /// Operator of the unit for the test
-    pub operator: &'a str,
+    pub operator: String,
     /// Free comment field
-    pub comment: &'a str,
+    pub comment: String,
 }
 
 /// Supplier parameters describe the OTDR unit itself, such as the optical 
 /// module ID/serial number. Often this block also contains information about 
 /// calibration dates in the "other" field.
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct SupplierParametersBlock<'a> {
+pub struct SupplierParametersBlock {
     /// Manufacturer of the OTDR
-    pub supplier_name: &'a str,
+    pub supplier_name: String,
     /// Mainframe model number
-    pub otdr_mainframe_id: &'a str,
+    pub otdr_mainframe_id: String,
     /// Mainframe serial number
-    pub otdr_mainframe_sn: &'a str,
+    pub otdr_mainframe_sn: String,
     /// Optical module model number
-    pub optical_module_id: &'a str,
+    pub optical_module_id: String,
     /// Optical module serial number
-    pub optical_module_sn: &'a str,
+    pub optical_module_sn: String,
     /// Software revision
-    pub software_revision: &'a str,
+    pub software_revision: String,
     /// Free text
-    pub other: &'a str,
+    pub other: String,
 }
 
 /// Fixed parameters block contains key information for interpreting the test 
 /// data
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct FixedParametersBlock<'a> {
+pub struct FixedParametersBlock {
     /// Datestamp - unix epoch seconds, 32-bit. Remember not to do any OTDR 
     /// tests after 2038.
     pub date_time_stamp: u32,
     /// Units of distance - km, mt, ft, kf, mi, etc. Typically mt (in civilised 
     /// nations)
-    pub units_of_distance: &'a str,
+    pub units_of_distance: String,
     /// Actual wavelength used - normally the factory-calibrated wavelength in 
     /// nm, or nominal wavelength
     pub actual_wavelength: i16,
@@ -152,7 +152,7 @@ pub struct FixedParametersBlock<'a> {
     /// Trace type - identifies if this is a standard one-way trace, a 
     /// bidirectional trace, reference trace, difference trace, or reversed 
     /// trace
-    pub trace_type: &'a str,
+    pub trace_type: String,
     /// Window coordinate for the upper right window corner
     pub window_coordinate_1: i32,
     /// Power coordinate for the upper right window corner
@@ -165,7 +165,7 @@ pub struct FixedParametersBlock<'a> {
 
 /// KeyEvents describe a single event along the fibre path detected by the OTDR
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct KeyEvent<'a> {
+pub struct KeyEvent {
     /// Event number - this is from 0 to n
     pub event_number: i16,
     /// Event propogation time is the time in 100ps units from the front panel 
@@ -185,10 +185,10 @@ pub struct KeyEvent<'a> {
     ///     A = added by user, M = moved by user, E = end of fibre, F = found 
     ///     by software, O = out of range, D = modified end of fibre
     /// Remaining bytes are the Landmark number if used - 9s otherwise
-    pub event_code: &'a str,
+    pub event_code: String,
     /// Loss measurement technique - 2P for two point, LS for least squares, OT 
     /// for other
-    pub loss_measurement_technique: &'a str,
+    pub loss_measurement_technique: String,
     /// Marker location - ML1 is the OTDR side for 2P/LS/OT measurements
     pub marker_location_1: i32,
     /// Marker location - ML2 is the OTDR side for LS measurements, and bounds 
@@ -203,26 +203,26 @@ pub struct KeyEvent<'a> {
     /// Marker location - ML5 is the reflectance calculation position
     pub marker_location_5: i32,
     /// Free comment on the event
-    pub comment: &'a str,
+    pub comment: String,
 }
 
 /// The last key event is as the KeyEvent, with some additional fields; see 
 /// KeyEvent for the documentation of other fields
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct LastKeyEvent<'a> {
+pub struct LastKeyEvent {
     pub event_number: i16,
     pub event_propogation_time: i32,
     pub attenuation_coefficient_lead_in_fiber: i16,
     pub event_loss: i16,
     pub event_reflectance: i32,
-    pub event_code: &'a str,
-    pub loss_measurement_technique: &'a str,
+    pub event_code: String,
+    pub loss_measurement_technique: String,
     pub marker_location_1: i32,
     pub marker_location_2: i32,
     pub marker_location_3: i32,
     pub marker_location_4: i32,
     pub marker_location_5: i32,
-    pub comment: &'a str,
+    pub comment: String,
     /// End to end loss is in dB*1000 and measures the loss between the two 
     /// markers defined below
     pub end_to_end_loss: i32,
@@ -240,21 +240,21 @@ pub struct LastKeyEvent<'a> {
 
 /// List of key events and a pointer to the last key event
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct KeyEvents<'a> {
+pub struct KeyEvents {
     pub number_of_key_events: i16,
-    pub key_events: Vec<KeyEvent<'a>>,
-    pub last_key_event: LastKeyEvent<'a>,
+    pub key_events: Vec<KeyEvent>,
+    pub last_key_event: LastKeyEvent,
 }
 
 /// Landmarks are a slightly esoteric feature not often used in SOR files for 
 /// field test equipment. They act to relate OTDR events to real-world 
 /// information such as WGS84 GPS data, known fibre MFDs, metre markers, etc
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct Landmark<'a> {
+pub struct Landmark {
     pub landmark_number: i16,
     /// Landmark code identifies the landmark - see page 27 of the standard for 
     /// the list
-    pub landmark_code: &'a str,
+    pub landmark_code: String,
     /// Location in 100ps from user offset to the landmark
     pub landmark_location: i32,
     pub related_event_number: i16,
@@ -265,9 +265,9 @@ pub struct Landmark<'a> {
     pub fiber_correction_factor_lead_in_fiber: i16,
     pub sheath_marker_entering_landmark: i32,
     pub sheath_marker_leaving_landmark: i32,
-    pub units_of_sheath_marks_leaving_landmark: &'a str,
+    pub units_of_sheath_marks_leaving_landmark: String,
     pub mode_field_diameter_leaving_landmark: i16,
-    pub comment: &'a str,
+    pub comment: String,
 }
 
 /// DataPointsAtScaleFactor is the struct that actually contains the data 
@@ -296,9 +296,9 @@ pub struct DataPoints {
 /// Contains a set of landmarks which describe the physical fibre path and may 
 /// relate this to described KeyEvents
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct LinkParameters<'a> {
+pub struct LinkParameters {
     pub number_of_landmarks: i16,
-    pub landmarks: Vec<Landmark<'a>>,
+    pub landmarks: Vec<Landmark>,
 }
 
 /// ProprietaryBlock is a struct to contain third-party proprietary information.
@@ -306,22 +306,22 @@ pub struct LinkParameters<'a> {
 /// analysis, etc.
 /// otdrs extracts the header, and stores the data as an array of bytes.
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct ProprietaryBlock<'a> {
-    pub header: &'a str,
-    pub data: &'a [u8],
+pub struct ProprietaryBlock {
+    pub header: String,
+    pub data: Vec<u8>,
 }
 
 /// SORFile describes a full SOR file. All blocks except MapBlock are Option 
 /// types as we cannot guarantee the parser will find them, but many blocks are 
 /// in fact mandatory in the specification so compliant files will provide them.
 #[derive(Debug, PartialEq, Serialize, Clone)]
-pub struct SORFile<'b> {
-    pub map: MapBlock<'b>,
-    pub general_parameters: Option<GeneralParametersBlock<'b>>,
-    pub supplier_parameters: Option<SupplierParametersBlock<'b>>,
-    pub fixed_parameters: Option<FixedParametersBlock<'b>>,
-    pub key_events: Option<KeyEvents<'b>>,
-    pub link_parameters: Option<LinkParameters<'b>>,
+pub struct SORFile {
+    pub map: MapBlock,
+    pub general_parameters: Option<GeneralParametersBlock>,
+    pub supplier_parameters: Option<SupplierParametersBlock>,
+    pub fixed_parameters: Option<FixedParametersBlock>,
+    pub key_events: Option<KeyEvents>,
+    pub link_parameters: Option<LinkParameters>,
     pub data_points: Option<DataPoints>,
-    pub proprietary_blocks: Vec<ProprietaryBlock<'b>>,
+    pub proprietary_blocks: Vec<ProprietaryBlock>,
 }

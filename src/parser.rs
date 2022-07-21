@@ -39,14 +39,14 @@ fn block_header<'a>(i: &'a [u8], header: &str) -> IResult<&'a [u8], &'a [u8]> {
 }
 
 /// Parse a block information sequence within the map block
-fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo<'_>> {
+fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo> {
     let (i, header) = null_terminated_str(i)?;
     let (i, revision_number) = le_u16(i)?;
     let (i, size) = le_i32(i)?;
     Ok((
         i,
         BlockInfo {
-            identifier: header,
+            identifier: String::from(header),
             revision_number,
             size,
         },
@@ -98,7 +98,7 @@ fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
 
 /// Parse the general parameters block, which contains acquisition information 
 /// as well as locations/identifiers.
-pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock<'_>> {
+pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock> {
     let (i, _) = block_header(i, BLOCK_ID_GENPARAMS)?;
     let (i, language_code) = fixed_length_str(i, 2)?;
     let (i, cable_id) = null_terminated_str(i)?;
@@ -116,26 +116,26 @@ pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlo
     Ok((
         i,
         GeneralParametersBlock {
-            language_code,
-            cable_id,
-            fiber_id,
+            language_code: String::from(language_code),
+            cable_id: String::from(cable_id),
+            fiber_id: String::from(fiber_id),
             fiber_type,
             nominal_wavelength,
-            originating_location,
-            terminating_location,
-            cable_code,
-            current_data_flag,
+            originating_location: String::from(originating_location),
+            terminating_location: String::from(terminating_location),
+            cable_code: String::from(cable_code),
+            current_data_flag: String::from(current_data_flag),
             user_offset,
             user_offset_distance,
-            operator,
-            comment,
+            operator: String::from(operator),
+            comment: String::from(comment),
         },
     ))
 }
 
 /// Parse the supplier parameters block, which contains information about the 
 /// OTDR equipment used.
-pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock<'_>> {
+pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock> {
     let (i, _) = block_header(i, BLOCK_ID_SUPPARAMS)?;
     let (i, supplier_name) = null_terminated_str(i)?;
     let (i, otdr_mainframe_id) = null_terminated_str(i)?;
@@ -147,20 +147,20 @@ pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersB
     Ok((
         i,
         SupplierParametersBlock {
-            supplier_name,
-            otdr_mainframe_id,
-            otdr_mainframe_sn,
-            optical_module_id,
-            optical_module_sn,
-            software_revision,
-            other,
+            supplier_name: String::from(supplier_name),
+            otdr_mainframe_id: String::from(otdr_mainframe_id),
+            otdr_mainframe_sn: String::from(otdr_mainframe_sn),
+            optical_module_id: String::from(optical_module_id),
+            optical_module_sn: String::from(optical_module_sn),
+            software_revision: String::from(software_revision),
+            other: String::from(other),
         },
     ))
 }
 
 /// Parse the fixed paramters block, which contains most of the information 
 /// required to interpret the stored data.
-pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'_>> {
+pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock> {
     let (i, _) = block_header(i, BLOCK_ID_FXDPARAMS)?;
     let (i, date_time_stamp) = le_u32(i)?;
     let (i, units_of_distance) = fixed_length_str(i, 2)?;
@@ -195,7 +195,7 @@ pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'
         i,
         FixedParametersBlock {
             date_time_stamp,
-            units_of_distance,
+            units_of_distance: String::from(units_of_distance),
             actual_wavelength,
             acquisition_offset,
             acquisition_offset_distance,
@@ -216,7 +216,7 @@ pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'
             loss_threshold,
             reflectance_threshold,
             end_of_fibre_threshold,
-            trace_type,
+            trace_type: String::from(trace_type),
             window_coordinate_1,
             window_coordinate_2,
             window_coordinate_3,
@@ -227,7 +227,7 @@ pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock<'
 
 /// Parse any key event, except for the final key event, which is parsed with 
 /// last_key_event as it differs structurally
-pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
+pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -249,21 +249,21 @@ pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent<'_>> {
             attenuation_coefficient_lead_in_fiber,
             event_loss,
             event_reflectance,
-            event_code,
-            loss_measurement_technique,
+            event_code: String::from(event_code),
+            loss_measurement_technique: String::from(loss_measurement_technique),
             marker_location_1,
             marker_location_2,
             marker_location_3,
             marker_location_4,
             marker_location_5,
-            comment,
+            comment: String::from(comment),
         },
     ))
 }
 
 /// Parse the final key event in the key events block, which contains much of 
 /// the end-to-end loss definitions
-pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
+pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -292,14 +292,14 @@ pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
             attenuation_coefficient_lead_in_fiber,
             event_loss,
             event_reflectance,
-            event_code,
-            loss_measurement_technique,
+            event_code: String::from(event_code),
+            loss_measurement_technique: String::from(loss_measurement_technique),
             marker_location_1,
             marker_location_2,
             marker_location_3,
             marker_location_4,
             marker_location_5,
-            comment,
+            comment: String::from(comment),
             end_to_end_loss,
             end_to_end_marker_position_1,
             end_to_end_marker_position_2,
@@ -311,7 +311,7 @@ pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent<'_>> {
 }
 
 /// Parse the key events block
-pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
+pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents> {
     let (i, _) = block_header(i, BLOCK_ID_KEYEVENTS)?;
     let (i, number_of_key_events) = le_i16(i)?;
     let (n_key_events, overflowed) = number_of_key_events.overflowing_sub(1);
@@ -332,7 +332,7 @@ pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents<'_>> {
 
 // TODO: Test this, no test data to hand so this is probably correct
 /// Parse a landmark from the link parameters block
-pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
+pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, landmark_number) = le_i16(i)?;
     let (i, landmark_code) = fixed_length_str(i, 2)?;
@@ -350,7 +350,7 @@ pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
         i,
         Landmark {
             landmark_number,
-            landmark_code,
+            landmark_code: String::from(landmark_code),
             landmark_location,
             related_event_number,
             gps_longitude,
@@ -358,16 +358,16 @@ pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark<'_>> {
             fiber_correction_factor_lead_in_fiber,
             sheath_marker_entering_landmark,
             sheath_marker_leaving_landmark,
-            units_of_sheath_marks_leaving_landmark,
+            units_of_sheath_marks_leaving_landmark: String::from(units_of_sheath_marks_leaving_landmark),
             mode_field_diameter_leaving_landmark,
-            comment,
+            comment: String::from(comment),
         },
     ))
 }
 
 // TODO: Test this, no test data to hand so this is probably correct
 /// Extract link parameters and encoded landmarks from the LinkParams block.
-pub fn link_parameters_block(i: &[u8]) -> IResult<&[u8], LinkParameters<'_>> {
+pub fn link_parameters_block(i: &[u8]) -> IResult<&[u8], LinkParameters> {
     let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, number_of_landmarks) = le_i16(i)?;
     let (i, landmarks) = count(landmark, number_of_landmarks as usize)(i)?;
@@ -420,8 +420,8 @@ pub fn proprietary_block(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
     Ok((
         &[],
         ProprietaryBlock {
-            header,
-            data,
+            header: String::from(header),
+            data: data.to_vec(),
         },
     ))
 }
@@ -429,7 +429,7 @@ pub fn proprietary_block(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
 
 /// Parse a complete SOR file, extracting all known and proprietary blocks to a 
 /// SORFile struct. 
-pub fn parse_file(i: &[u8]) -> IResult<&[u8], SORFile> {
+pub fn parse_file<'a>(i: &'a[u8]) -> IResult<&'a[u8], SORFile> {
     let mut general_parameters: Option<GeneralParametersBlock> = None;
     let mut supplier_parameters: Option<SupplierParametersBlock> = None;
     let mut fixed_parameters: Option<FixedParametersBlock> = None;
@@ -437,11 +437,12 @@ pub fn parse_file(i: &[u8]) -> IResult<&[u8], SORFile> {
     let link_parameters: Option<LinkParameters> = None;
     let mut data_points: Option<DataPoints> = None;
     let mut proprietary_blocks: Vec<ProprietaryBlock> = Vec::new();
+    
     let (_, map) = map_block(i)?;
     for block in &map.block_info {
         // Load the block's data
         let default: &[u8] = &[0u8];
-        let data = extract_block_data(i, block.identifier).unwrap_or(default);
+        let data = extract_block_data(i, &block.identifier).unwrap_or(default);
         // Parse it
         if block.identifier == BLOCK_ID_SUPPARAMS {
             let (_, ret) = supplier_parameters_block(data)?;
@@ -488,7 +489,7 @@ pub fn parse_file(i: &[u8]) -> IResult<&[u8], SORFile> {
 /// This allows for the parsers in this file to work on a single block at a 
 /// time without strict ordering, as the SOR file does not require a specific 
 /// sequence of blocks.
-fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a str> {
+fn extract_block_data<'a>(data: &'a [u8], header: &String) -> Result<&'a [u8], &'a str> {
     let res = map_block(data);
     let map = res.unwrap().1;
     let mut offset: usize = map.block_size as usize;
@@ -496,7 +497,7 @@ fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a 
     
     for block in map.block_info {
         len = block.size as usize;
-        if block.identifier == header {
+        if block.identifier == *header {
             break;
         }
         let (offset_value, overflow) = offset.overflowing_add(block.size as usize);
@@ -512,16 +513,16 @@ fn extract_block_data<'a>(data: &'a [u8], header: &str) -> Result<&'a [u8], &'a 
     if offset > data.len() {
         return Err("Error with block data - reported block position is incorrect");
     }
-    if (final_byte) > data.len() {
+    if final_byte > data.len() {
         return Err("Error with block data - reported block position or length is incorrect");
     }
     Ok(&data[offset..final_byte])
 }
 
 #[cfg(test)]
-fn test_load_file_section(header: &str) -> &[u8] {
+fn test_load_file_section<'a>(header: String) -> &'a[u8] {
     let data = include_bytes!("../data/example1-noyes-ofl280.sor");
-    return extract_block_data(data, header).unwrap();
+    return extract_block_data(data, &header).unwrap();
 }
 
 #[test]
@@ -572,7 +573,7 @@ fn test_parse_exfo_ftb4_file() {
 
 #[test]
 fn test_data_points_block() {
-    let data = test_load_file_section(BLOCK_ID_DATAPTS);
+    let data = test_load_file_section(BLOCK_ID_DATAPTS.to_owned());
     let res = data_points_block(data);
     let parsed = res.unwrap().1;
     assert_eq!(parsed.scale_factors[0].data.len(), 30000);
@@ -609,7 +610,7 @@ fn test_data_points_block() {
 
 #[test]
 fn test_key_events_block() {
-    let data = test_load_file_section(BLOCK_ID_KEYEVENTS);
+    let data = test_load_file_section(BLOCK_ID_KEYEVENTS.to_owned());
     let res = key_events_block(data);
     assert_eq!(
         res.unwrap().1,
@@ -622,14 +623,14 @@ fn test_key_events_block() {
                     attenuation_coefficient_lead_in_fiber: 0,
                     event_loss: -215,
                     event_reflectance: -46671,
-                    event_code: "1F9999",
-                    loss_measurement_technique: "LS",
+                    event_code: "1F9999".to_owned(),
+                    loss_measurement_technique: "LS".to_owned(),
                     marker_location_1: 0,
                     marker_location_2: 0,
                     marker_location_3: 0,
                     marker_location_4: 0,
                     marker_location_5: 0,
-                    comment: " "
+                    comment: " ".to_owned()
                 },
                 KeyEvent {
                     event_number: 2,
@@ -637,14 +638,14 @@ fn test_key_events_block() {
                     attenuation_coefficient_lead_in_fiber: 0,
                     event_loss: 374,
                     event_reflectance: 0,
-                    event_code: "0F9999",
-                    loss_measurement_technique: "LS",
+                    event_code: "0F9999".to_owned(),
+                    loss_measurement_technique: "LS".to_owned(),
                     marker_location_1: 0,
                     marker_location_2: 0,
                     marker_location_3: 0,
                     marker_location_4: 0,
                     marker_location_5: 0,
-                    comment: " "
+                    comment: " ".to_owned()
                 }
             ],
             last_key_event: LastKeyEvent {
@@ -653,14 +654,14 @@ fn test_key_events_block() {
                 attenuation_coefficient_lead_in_fiber: 185,
                 event_loss: -950,
                 event_reflectance: -23027,
-                event_code: "2E9999",
-                loss_measurement_technique: "LS",
+                event_code: "2E9999".to_owned(),
+                loss_measurement_technique: "LS".to_owned(),
                 marker_location_1: 0,
                 marker_location_2: 0,
                 marker_location_3: 0,
                 marker_location_4: 0,
                 marker_location_5: 0,
-                comment: " ",
+                comment: " ".to_owned(),
                 end_to_end_loss: 576,
                 end_to_end_marker_position_1: 0,
                 end_to_end_marker_position_2: 182809,
@@ -674,13 +675,13 @@ fn test_key_events_block() {
 
 #[test]
 fn test_fixparam_block() {
-    let data = test_load_file_section(BLOCK_ID_FXDPARAMS);
+    let data = test_load_file_section(BLOCK_ID_FXDPARAMS.to_owned());
     let res = fixed_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
         FixedParametersBlock {
             date_time_stamp: 1569835674,
-            units_of_distance: "mt",
+            units_of_distance: "mt".to_owned(),
             actual_wavelength: 1550,
             acquisition_offset: -2147,
             acquisition_offset_distance: -42,
@@ -701,7 +702,7 @@ fn test_fixparam_block() {
             loss_threshold: 50,
             reflectance_threshold: 65000,
             end_of_fibre_threshold: 3000,
-            trace_type: "ST",
+            trace_type: "ST".to_owned(),
             window_coordinate_1: 0,
             window_coordinate_2: 0,
             window_coordinate_3: 0,
@@ -712,42 +713,42 @@ fn test_fixparam_block() {
 
 #[test]
 fn test_supparam_block() {
-    let data = test_load_file_section(BLOCK_ID_SUPPARAMS);
+    let data = test_load_file_section(BLOCK_ID_SUPPARAMS.to_owned());
     let res = supplier_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
         SupplierParametersBlock {
-            supplier_name: "Noyes",
-            otdr_mainframe_id: "OFL280C-100",
-            otdr_mainframe_sn: "2G14PT7552     ",
-            optical_module_id: "0.0.43 ",
-            optical_module_sn: " ",
-            software_revision: "1.2.04b1011F ",
-            other: "Last Calibration Date:  2019-03-25 "
+            supplier_name: "Noyes".to_owned(),
+            otdr_mainframe_id: "OFL280C-100".to_owned(),
+            otdr_mainframe_sn: "2G14PT7552     ".to_owned(),
+            optical_module_id: "0.0.43 ".to_owned(),
+            optical_module_sn: " ".to_owned(),
+            software_revision: "1.2.04b1011F ".to_owned(),
+            other: "Last Calibration Date:  2019-03-25 ".to_owned()
         }
     );
 }
 
 #[test]
 fn test_genparam_block() {
-    let data = test_load_file_section(BLOCK_ID_GENPARAMS);
+    let data = test_load_file_section(BLOCK_ID_GENPARAMS.to_owned());
     let res = general_parameters_block(data);
     assert_eq!(
         res.unwrap().1,
         GeneralParametersBlock {
-            language_code: "EN",
-            cable_id: "C001 ",
-            fiber_id: "009",
+            language_code: "EN".to_owned(),
+            cable_id: "C001 ".to_owned(),
+            fiber_id: "009".to_owned(),
             fiber_type: 652,
             nominal_wavelength: 1550,
-            originating_location: "CAB000 ",
-            terminating_location: "CLS007 ",
-            cable_code: " ",
-            current_data_flag: "NC",
+            originating_location: "CAB000 ".to_owned(),
+            terminating_location: "CLS007 ".to_owned(),
+            cable_code: " ".to_owned(),
+            current_data_flag: "NC".to_owned(),
             user_offset: 24641,
             user_offset_distance: 503,
-            operator: " ",
-            comment: " "
+            operator: " ".to_owned(),
+            comment: " ".to_owned()
         }
     );
 }
@@ -756,7 +757,7 @@ fn test_genparam_block() {
 fn test_map_block() {
     let data = include_bytes!("../data/example1-noyes-ofl280.sor");
     let res = map_block(data);
-    // println!("{:#?}", res.unwrap().1);
+    // println!("{:#?}".to_owned(), res.unwrap().1);
     assert_eq!(
         res.unwrap().1,
         MapBlock {
@@ -765,52 +766,52 @@ fn test_map_block() {
             block_count: 11,
             block_info: vec![
                 BlockInfo {
-                    identifier: "GenParams",
+                    identifier: "GenParams".to_owned(),
                     revision_number: 200,
                     size: 58
                 },
                 BlockInfo {
-                    identifier: "SupParams",
+                    identifier: "SupParams".to_owned(),
                     revision_number: 200,
                     size: 104
                 },
                 BlockInfo {
-                    identifier: "FxdParams",
+                    identifier: "FxdParams".to_owned(),
                     revision_number: 200,
                     size: 92
                 },
                 BlockInfo {
-                    identifier: "FodParams",
+                    identifier: "FodParams".to_owned(),
                     revision_number: 200,
                     size: 266
                 },
                 BlockInfo {
-                    identifier: "KeyEvents",
+                    identifier: "KeyEvents".to_owned(),
                     revision_number: 200,
                     size: 166
                 },
                 BlockInfo {
-                    identifier: "Fod02Params",
+                    identifier: "Fod02Params".to_owned(),
                     revision_number: 200,
                     size: 38
                 },
                 BlockInfo {
-                    identifier: "Fod04Params",
+                    identifier: "Fod04Params".to_owned(),
                     revision_number: 200,
                     size: 166
                 },
                 BlockInfo {
-                    identifier: "Fod03Params",
+                    identifier: "Fod03Params".to_owned(),
                     revision_number: 200,
                     size: 26
                 },
                 BlockInfo {
-                    identifier: "DataPts",
+                    identifier: "DataPts".to_owned(),
                     revision_number: 200,
                     size: 60020
                 },
                 BlockInfo {
-                    identifier: "Cksum",
+                    identifier: "Cksum".to_owned(),
                     revision_number: 200,
                     size: 8
                 }

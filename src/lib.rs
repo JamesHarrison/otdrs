@@ -77,8 +77,7 @@ macro_rules! add_block {
     };
 }
 
-impl<'a> SORFile<'a> {
-    #[allow(dead_code)]
+impl SORFile {
     pub fn to_bytes(&self) -> Result<Vec<u8>, &str> {
         let mut bytes: Vec<u8> = Vec::new();
         // Basically, we're now going to generate everything from scratch from our internal state
@@ -92,20 +91,20 @@ impl<'a> SORFile<'a> {
         // Then we add to this block for anything we have
         // FIXME: We should probably explode instead of producing non-compliant files, e.g. genparams is mandatory in spec
         // We are permissive in reading and parsing nonsense files but should be strict in production.
-        add_block!(bytes, self.map, new_map, self.general_parameters, self.gen_general_parameters(), parser::BLOCK_ID_GENPARAMS);
-        add_block!(bytes, self.map, new_map, self.supplier_parameters, self.gen_supplier_parameters(), parser::BLOCK_ID_SUPPARAMS);
-        add_block!(bytes, self.map, new_map, self.fixed_parameters, self.gen_fixed_parameters(), parser::BLOCK_ID_FXDPARAMS);
-        add_block!(bytes, self.map, new_map, self.key_events, self.gen_key_events(), parser::BLOCK_ID_KEYEVENTS);
-        add_block!(bytes, self.map, new_map, self.data_points, self.gen_data_points(), parser::BLOCK_ID_DATAPTS);
+        add_block!(bytes, self.map, new_map, self.general_parameters, self.gen_general_parameters(), parser::BLOCK_ID_GENPARAMS.to_string());
+        add_block!(bytes, self.map, new_map, self.supplier_parameters, self.gen_supplier_parameters(), parser::BLOCK_ID_SUPPARAMS.to_string());
+        add_block!(bytes, self.map, new_map, self.fixed_parameters, self.gen_fixed_parameters(), parser::BLOCK_ID_FXDPARAMS.to_string());
+        add_block!(bytes, self.map, new_map, self.key_events, self.gen_key_events(), parser::BLOCK_ID_KEYEVENTS.to_string());
+        add_block!(bytes, self.map, new_map, self.data_points, self.gen_data_points(), parser::BLOCK_ID_DATAPTS.to_string());
         
         // For each proprietary block, just write it out
         for pb in &self.proprietary_blocks {
-            add_block!(bytes, self.map, new_map, self.gen_proprietary_block(pb), pb.header);
+            add_block!(bytes, self.map, new_map, self.gen_proprietary_block(pb), pb.header.clone());
         }
         
         // Now we want to generate our checksum block - first we have to add the block to the map, before we bake it in, so we do this manually here...
         let new_block_info = BlockInfo {
-            identifier: parser::BLOCK_ID_CHECKSUM,
+            identifier: parser::BLOCK_ID_CHECKSUM.to_string(),
             revision_number: 200, // We're hardcoding this because we can
             size: (parser::BLOCK_ID_CHECKSUM.len() + 1 + 2) as i32
         };
@@ -277,7 +276,7 @@ impl<'a> SORFile<'a> {
     fn gen_proprietary_block(&self, pb: &ProprietaryBlock) -> Result<Vec<u8>, &str> {
         let mut bytes: Vec<u8> = Vec::new();
         null_terminated_str!(bytes, pb.header);
-        bytes.extend(pb.data);
+        bytes.extend(pb.data.iter());
         Ok(bytes)
     }
 
@@ -294,7 +293,7 @@ impl<'a> SORFile<'a> {
 
 
 #[cfg(test)]
-fn test_sor_load<'a>() -> SORFile<'a> {
+fn test_sor_load<'a>() -> SORFile {
     let data = include_bytes!("../data/example4-exfo-ftb4ftbx730c-mfdgainer-1310nm.sor");
     parser::parse_file(data).unwrap().1
 }
