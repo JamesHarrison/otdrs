@@ -30,7 +30,7 @@ seconds_per_10k_points = (otdrs_out['fixed_parameters']['data_spacing'][0]/1e10)
 metres_per_data_spacing = (((seconds_per_10k_points/10000.0)) * speed_of_light_in_fibre) # FIXME: actually check this maths is right!
 # Assumes only one scale factor used - same as above, this is generally "safe"!
 sf = otdrs_out['data_points']['scale_factors'][0]['scale_factor'] # multiplier for the data
-scaled_data = np.array(otdrs_out['data_points']['scale_factors'][0]['data'])/float(sf) # Apply the scale factor to the whole dataset
+scaled_data = -(65535-np.array(otdrs_out['data_points']['scale_factors'][0]['data']))/float(sf) # Apply the scale factor to the whole dataset
 # Just for cosmetics (in this example) we'll draw lines at the front panel point and the launch connector point
 seconds_to_front_panel = otdrs_out['fixed_parameters']['front_panel_offset']/1e10
 seconds_to_launch_connector = otdrs_out['general_parameters']['user_offset']/1e10
