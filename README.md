@@ -130,6 +130,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 1.0.1 - upgraded nom to 8.0.0, clap to 4.x
 * 1.0.0 - refactored to avoid some beginner Rust errors; SORFile now owns its data. Updated dependencies.
 * 0.4.2 - upgraded nom to 7.1.0, clap to 3.0.0-rc7
 * 0.4.1 - upgraded nom to 6.1.2, improved README and demo scripts
