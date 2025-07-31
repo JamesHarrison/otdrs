@@ -145,6 +145,8 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 1.0.4 - Python module type hints, dependency fix
+* 1.0.3 - Python module fixes
 * 1.0.2 - Python module added as an optional feature
 * 1.0.1 - upgraded nom to 8.0.0, clap to 4.x
 * 1.0.0 - refactored to avoid some beginner Rust errors; SORFile now owns its data. Updated dependencies.

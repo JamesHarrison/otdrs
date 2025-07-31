@@ -4,7 +4,6 @@ dynamic = ["version"]
 description = "File parser and writer for optical time-domain reflectometry interchange files (Bellcore SOR)"
 readme = "README.md"
 requires-python = ">=3.7"
-dependencies = ["maturin>=1.9.2"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Rust",
@@ -29,3 +28,6 @@ cache-keys = [
 [tool.maturin]
 # cargo-extra-args = "--features python"
 features = ["pyo3/extension-module", "python"]
+
+[dependency-groups]
+dev = ["maturin>=1.9.2"]
