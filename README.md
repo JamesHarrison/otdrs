@@ -65,6 +65,21 @@ fn main() -> std::io::Result<()>  {
 }
 ```
 
+### Python module
+
+`otdrs` is also available as a Python module, with limited functionality. Currently, reading SOR files is supported.
+
+```python
+import otdrs
+sor_from_file = otdrs.parse_file("input.sor")
+sor_from_file.fixed_parameters.acquisition_offset #=> returns the acquisition offset, and so on
+file = open("input.sor", "rb")
+sor_from_bytes = otdrs.parse_bytes(file.read())
+sor_from_bytes == sor_from_file #=> True
+```
+
+The resulting objects and methods are fully type hinted.
+
 ## Code Quality, Conformance/Compliance
 
 This is the author's first major Rust project, so use with caution.

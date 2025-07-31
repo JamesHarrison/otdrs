@@ -19,9 +19,19 @@ serde_cbor = "0.11.2"
 clap = { version = "4.5.42", features = ["derive"] }
 crc = "3.3.0"
 
+
+[dependencies.pyo3]
+version = "0.25.1"
+features = ["extension-module", "abi3-py37"]
+optional = true
+
+[features]
+python = ["dep:pyo3"]
+
 [lib]
 name = "otdrs"
 path = "src/lib.rs"
+crate-type = ["cdylib", "lib"] # cdylib is required for the Python builds
 
 [[bin]]
 name = "otdrs"

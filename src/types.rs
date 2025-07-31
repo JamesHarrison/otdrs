@@ -1,10 +1,16 @@
+/// Import pyo3 if required
+#[cfg(feature = "python")]
+use pyo3::prelude::*;
 /// This module contains all of the struct definitions for the various types
 /// we're pulling from OTDR files.
 use serde::Serialize;
-
 /// A BlockInfo struct contains information about a specific block later in the
 /// file, and appears in the MapBlock
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
+#[cfg_attr(
+    feature = "python",
+    pyclass(frozen, eq, hash, module = "otdrs", get_all)
+)]
 pub struct BlockInfo {
     /// Name of the block
     pub identifier: String,
@@ -16,6 +22,10 @@ pub struct BlockInfo {
 
 /// Every SOR file has a MapBlock which acts as a map to the file's contents
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
+#[cfg_attr(
+    feature = "python",
+    pyclass(frozen, eq, hash, module = "otdrs", get_all)
+)]
 pub struct MapBlock {
     /// Revision number - major (3 digits), minor, cosmetic - for the file as a
     /// whole
@@ -32,6 +42,10 @@ pub struct MapBlock {
 /// test-identifying information as well as generic information about the test
 /// being run such as the nominal wavelength
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
+#[cfg_attr(
+    feature = "python",
+    pyclass(frozen, eq, hash, module = "otdrs", get_all)
+)]
 pub struct GeneralParametersBlock {
     /// Language code - EN, CN, JP, etc.
     pub language_code: String,
@@ -69,6 +83,7 @@ pub struct GeneralParametersBlock {
 /// module ID/serial number. Often this block also contains information about
 /// calibration dates in the "other" field.
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct SupplierParametersBlock {
     /// Manufacturer of the OTDR
     pub supplier_name: String,
@@ -89,6 +104,7 @@ pub struct SupplierParametersBlock {
 /// Fixed parameters block contains key information for interpreting the test
 /// data
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct FixedParametersBlock {
     /// Datestamp - unix epoch seconds, 32-bit. Remember not to do any OTDR
     /// tests after 2038.
@@ -164,6 +180,7 @@ pub struct FixedParametersBlock {
 
 /// KeyEvents describe a single event along the fibre path detected by the OTDR
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct KeyEvent {
     /// Event number - this is from 0 to n
     pub event_number: i16,
@@ -208,6 +225,7 @@ pub struct KeyEvent {
 /// The last key event is as the KeyEvent, with some additional fields; see
 /// KeyEvent for the documentation of other fields
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct LastKeyEvent {
     pub event_number: i16,
     pub event_propogation_time: i32,
@@ -239,6 +257,7 @@ pub struct LastKeyEvent {
 
 /// List of key events and a pointer to the last key event
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct KeyEvents {
     pub number_of_key_events: i16,
     pub key_events: Vec<KeyEvent>,
@@ -249,6 +268,7 @@ pub struct KeyEvents {
 /// field test equipment. They act to relate OTDR events to real-world
 /// information such as WGS84 GPS data, known fibre MFDs, metre markers, etc
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct Landmark {
     pub landmark_number: i16,
     /// Landmark code identifies the landmark - see page 27 of the standard for
@@ -272,6 +292,7 @@ pub struct Landmark {
 /// DataPointsAtScaleFactor is the struct that actually contains the data
 /// points of the measurements for a given scale factor
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct DataPointsAtScaleFactor {
     /// Number of points in this block
     pub n_points: i32,
@@ -284,6 +305,7 @@ pub struct DataPointsAtScaleFactor {
 /// DataPoints holds all the different datasets in this file - one per scale
 /// factor
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct DataPoints {
     pub number_of_data_points: i32,
     pub total_number_scale_factors_used: i16,
@@ -295,6 +317,7 @@ pub struct DataPoints {
 /// Contains a set of landmarks which describe the physical fibre path and may
 /// relate this to described KeyEvents
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct LinkParameters {
     pub number_of_landmarks: i16,
     pub landmarks: Vec<Landmark>,
@@ -305,6 +328,7 @@ pub struct LinkParameters {
 /// analysis, etc.
 /// otdrs extracts the header, and stores the data as an array of bytes.
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct ProprietaryBlock {
     pub header: String,
     pub data: Vec<u8>,
@@ -314,6 +338,7 @@ pub struct ProprietaryBlock {
 /// types as we cannot guarantee the parser will find them, but many blocks are
 /// in fact mandatory in the specification so compliant files will provide them.
 #[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
 pub struct SORFile {
     pub map: MapBlock,
     pub general_parameters: Option<GeneralParametersBlock>,
