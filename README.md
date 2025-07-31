@@ -12,7 +12,7 @@ Writing of files is performed with as much care as possible and the optional che
 
 Rust was chosen for its robustness, type-safety, and the excellent `nom` parser library. `serde` is used for serialisation for output.
 
-![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg) [![Cargo](https://img.shields.io/crates/v/otdrs)](https://crates.io/crates/otdrs) [![Downloads](https://img.shields.io/crates/d/otdrs)](https://crates.io/crates/otdrs)
+![Rust](https://github.com/JamesHarrison/otdrs/workflows/Rust/badge.svg) [![Cargo](https://img.shields.io/crates/v/otdrs)](https://crates.io/crates/otdrs) [![Downloads](https://img.shields.io/crates/d/otdrs)](https://crates.io/crates/otdrs) [![Python](https://github.com/JamesHarrison/otdrs/actions/workflows/python.yml/badge.svg)](https://github.com/JamesHarrison/otdrs/actions/workflows/python.yml)
 
 ## Usage
 
@@ -145,6 +145,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 1.0.2 - Python module added as an optional feature
 * 1.0.1 - upgraded nom to 8.0.0, clap to 4.x
 * 1.0.0 - refactored to avoid some beginner Rust errors; SORFile now owns its data. Updated dependencies.
 * 0.4.2 - upgraded nom to 7.1.0, clap to 3.0.0-rc7
