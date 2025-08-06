@@ -16,7 +16,7 @@ use clap::Parser;
 /// as do all doc strings on fields
 #[derive(Parser)]
 #[clap(
-    version = "1.0.4",
+    version = "1.0.5",
     author = "James Harrison <james@talkunafraid.co.uk>",
     about = "otdrs is a conversion utility to convert Telcordia SOR files, used by optical time-domain reflectometry testers, into open formats such as JSON"
 )]

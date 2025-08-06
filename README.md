@@ -145,6 +145,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 1.0.5 - License change from GPLv3 to LGPLv3
 * 1.0.4 - Python module type hints, dependency fix
 * 1.0.3 - Python module fixes
 * 1.0.2 - Python module added as an optional feature
@@ -159,20 +160,22 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## License
 
-GPLv3 has been selected specifically to drive improved open source engagement with equipment manufacturers and developers of OTDR processing software in an industry that has struggled with open data exchange, proprietary (and vendor-locked) software, and poor maintenance of existing software.
+Versions of `otdrs` up to 1.0.4 were licensed under the GPL version 3. GPLv3 was selected specifically to drive improved open source engagement with equipment manufacturers and developers of OTDR processing software in an industry that has struggled with open data exchange, proprietary (and vendor-locked) software, and poor maintenance of existing software. 
+
+Version 1.0.5 onwards is licensed under the LGPL version 3, which unambiguously allows use of `otdrs` as a library in proprietary tools and services, to encourage use of open-source tooling in proprietary services.
 
 otdrs - a SOR file parsing tool
-Copyright (C) 2021 James Harrison
+Copyright (C) 2021, 2022, 2023, 2025 James Harrison
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
+it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
