@@ -86,15 +86,12 @@ fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
 
 /// Parse a null-terminated variable length string
 fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
-    #[allow(clippy::redundant_closure)]
-    map_res(null_terminated_chunk, |s| str::from_utf8(s)).parse(i)
+    map_res(null_terminated_chunk, str::from_utf8).parse(i)
 }
 
 /// Parse a fixed-length string of the given number of bytes
-
 fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
-    #[allow(clippy::redundant_closure)]
-    map_res(take(n_bytes * (1u8 as usize)), |s| str::from_utf8(s)).parse(i)
+    map_res(take(n_bytes), str::from_utf8).parse(i)
 }
 
 /// Parse the general parameters block, which contains acquisition information
@@ -226,9 +223,7 @@ pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock> 
     ))
 }
 
-/// Parse any key event, except for the final key event, which is parsed with
-/// last_key_event as it differs structurally
-pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent> {
+fn parse_key_event_common(i: &[u8]) -> IResult<&[u8], KeyEvent> {
     let (i, event_number) = le_i16(i)?;
     let (i, event_propogation_time) = le_i32(i)?;
     let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
@@ -261,23 +256,16 @@ pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent> {
         },
     ))
 }
+/// Parse any key event, except for the final key event, which is parsed with
+/// last_key_event as it differs structurally
+pub fn key_event(i: &[u8]) -> IResult<&[u8], KeyEvent> {
+    parse_key_event_common(i)
+}
 
 /// Parse the final key event in the key events block, which contains much of
 /// the end-to-end loss definitions
 pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent> {
-    let (i, event_number) = le_i16(i)?;
-    let (i, event_propogation_time) = le_i32(i)?;
-    let (i, attenuation_coefficient_lead_in_fiber) = le_i16(i)?;
-    let (i, event_loss) = le_i16(i)?;
-    let (i, event_reflectance) = le_i32(i)?;
-    let (i, event_code) = fixed_length_str(i, 6)?;
-    let (i, loss_measurement_technique) = fixed_length_str(i, 2)?;
-    let (i, marker_location_1) = le_i32(i)?;
-    let (i, marker_location_2) = le_i32(i)?;
-    let (i, marker_location_3) = le_i32(i)?;
-    let (i, marker_location_4) = le_i32(i)?;
-    let (i, marker_location_5) = le_i32(i)?;
-    let (i, comment) = null_terminated_str(i)?;
+    let (i, common) = parse_key_event_common(i)?;
     let (i, end_to_end_loss) = le_i32(i)?;
     let (i, end_to_end_marker_position_1) = le_i32(i)?;
     let (i, end_to_end_marker_position_2) = le_i32(i)?;
@@ -288,19 +276,19 @@ pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent> {
     Ok((
         i,
         LastKeyEvent {
-            event_number,
-            event_propogation_time,
-            attenuation_coefficient_lead_in_fiber,
-            event_loss,
-            event_reflectance,
-            event_code: String::from(event_code),
-            loss_measurement_technique: String::from(loss_measurement_technique),
-            marker_location_1,
-            marker_location_2,
-            marker_location_3,
-            marker_location_4,
-            marker_location_5,
-            comment: String::from(comment),
+            event_number: common.event_number,
+            event_propogation_time: common.event_propogation_time,
+            attenuation_coefficient_lead_in_fiber: common.attenuation_coefficient_lead_in_fiber,
+            event_loss: common.event_loss,
+            event_reflectance: common.event_reflectance,
+            event_code: common.event_code,
+            loss_measurement_technique: common.loss_measurement_technique,
+            marker_location_1: common.marker_location_1,
+            marker_location_2: common.marker_location_2,
+            marker_location_3: common.marker_location_3,
+            marker_location_4: common.marker_location_4,
+            marker_location_5: common.marker_location_5,
+            comment: common.comment,
             end_to_end_loss,
             end_to_end_marker_position_1,
             end_to_end_marker_position_2,
@@ -436,6 +424,20 @@ pub fn proprietary_block(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
 /// Parse a complete SOR file, extracting all known and proprietary blocks to a
 /// SORFile struct.
 pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
+    let (mut rest, map) = map_block(i)?;
+
+    let mut total_size: u64 = 0;
+    for block in &map.block_info {
+        if block.size < 0 {
+            return Err(Err::Failure(Error { input: i, code: ErrorKind::Verify }));
+        }
+        total_size += block.size as u64;
+    }
+
+    if total_size > rest.len() as u64 {
+        return Err(Err::Failure(Error { input: i, code: ErrorKind::Verify }));
+    }
+
     let mut general_parameters: Option<GeneralParametersBlock> = None;
     let mut supplier_parameters: Option<SupplierParametersBlock> = None;
     let mut fixed_parameters: Option<FixedParametersBlock> = None;
@@ -444,37 +446,45 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
     let mut data_points: Option<DataPoints> = None;
     let mut proprietary_blocks: Vec<ProprietaryBlock> = Vec::new();
 
-    let (_, map) = map_block(i)?;
     for block in &map.block_info {
-        // Load the block's data
-        let default: &[u8] = &[0u8];
-        let data = extract_block_data(i, &block.identifier).unwrap_or(default);
-        // Parse it
-        if block.identifier == BLOCK_ID_SUPPARAMS {
-            let (_, ret) = supplier_parameters_block(data)?;
-            supplier_parameters = Some(ret);
-        } else if block.identifier == BLOCK_ID_GENPARAMS {
-            let (_, ret) = general_parameters_block(data)?;
-            general_parameters = Some(ret);
-        } else if block.identifier == BLOCK_ID_FXDPARAMS {
-            let (_, ret) = fixed_parameters_block(data)?;
-            fixed_parameters = Some(ret);
-        } else if block.identifier == BLOCK_ID_KEYEVENTS {
-            let (_, ret) = key_events_block(data)?;
-            key_events = Some(ret);
-        } else if block.identifier == BLOCK_ID_LNKPARAMS {
-            // Unimplemented due to lack of test data
-        } else if block.identifier == BLOCK_ID_DATAPTS {
-            let (_, ret) = data_points_block(data)?;
-            data_points = Some(ret);
-        } else if block.identifier == BLOCK_ID_CHECKSUM {
-            // TODO: Checksum checks should probably be handled elsewhere
-        } else {
-            // Handle proprietary blocks
-            let (_, ret) = proprietary_block(data)?;
-            proprietary_blocks.push(ret);
+        let (r, data) = take(block.size as usize)(rest)?;
+        rest = r;
+
+        match block.identifier.as_str() {
+            BLOCK_ID_SUPPARAMS => {
+                let (_, ret) = supplier_parameters_block(data)?;
+                supplier_parameters = Some(ret);
+            }
+            BLOCK_ID_GENPARAMS => {
+                let (_, ret) = general_parameters_block(data)?;
+                general_parameters = Some(ret);
+            }
+            BLOCK_ID_FXDPARAMS => {
+                let (_, ret) = fixed_parameters_block(data)?;
+                fixed_parameters = Some(ret);
+            }
+            BLOCK_ID_KEYEVENTS => {
+                let (_, ret) = key_events_block(data)?;
+                key_events = Some(ret);
+            }
+            BLOCK_ID_LNKPARAMS => {
+                // Unimplemented due to lack of test data
+            }
+            BLOCK_ID_DATAPTS => {
+                let (_, ret) = data_points_block(data)?;
+                data_points = Some(ret);
+            }
+            BLOCK_ID_CHECKSUM => {
+                // TODO: Checksum checks should probably be handled elsewhere
+            }
+            _ => {
+                // Handle proprietary blocks
+                let (_, ret) = proprietary_block(data)?;
+                proprietary_blocks.push(ret);
+            }
         }
     }
+
     Ok((
         i,
         SORFile {
@@ -488,47 +498,6 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
             proprietary_blocks,
         },
     ))
-}
-
-/// Given an input file and a block header, extracts the bytes for that block
-/// only using the map's description of the length of the block.
-/// This allows for the parsers in this file to work on a single block at a
-/// time without strict ordering, as the SOR file does not require a specific
-/// sequence of blocks.
-fn extract_block_data<'a>(data: &'a [u8], header: &String) -> Result<&'a [u8], &'a str> {
-    let res = map_block(data);
-    let map = res.unwrap().1;
-    let mut offset: usize = map.block_size as usize;
-    let mut len: usize = 0;
-
-    for block in map.block_info {
-        len = block.size as usize;
-        if block.identifier == *header {
-            break;
-        }
-        let (offset_value, overflow) = offset.overflowing_add(block.size as usize);
-        offset = offset_value;
-        if overflow {
-            return Err("Error with block data - offset value is incorrect");
-        }
-    }
-    let (final_byte, overflow) = offset.overflowing_add(len);
-    if overflow {
-        return Err("Error with block data - final byte value is incorrect");
-    }
-    if offset > data.len() {
-        return Err("Error with block data - reported block position is incorrect");
-    }
-    if final_byte > data.len() {
-        return Err("Error with block data - reported block position or length is incorrect");
-    }
-    Ok(&data[offset..final_byte])
-}
-
-#[cfg(test)]
-fn test_load_file_section<'a>(header: String) -> &'a [u8] {
-    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
-    return extract_block_data(data, &header).unwrap();
 }
 
 #[test]
@@ -579,9 +548,9 @@ fn test_parse_exfo_ftb4_file() {
 
 #[test]
 fn test_data_points_block() {
-    let data = test_load_file_section(BLOCK_ID_DATAPTS.to_owned());
-    let res = data_points_block(data);
-    let parsed = res.unwrap().1;
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
+    let sor = parse_file(data).unwrap().1;
+    let parsed = sor.data_points.unwrap();
     assert_eq!(parsed.scale_factors[0].data.len(), 30000);
     assert_eq!(parsed.scale_factors[0].n_points, 30000);
     assert_eq!(parsed.total_number_scale_factors_used, 1);
@@ -616,10 +585,10 @@ fn test_data_points_block() {
 
 #[test]
 fn test_key_events_block() {
-    let data = test_load_file_section(BLOCK_ID_KEYEVENTS.to_owned());
-    let res = key_events_block(data);
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
+    let sor = parse_file(data).unwrap().1;
     assert_eq!(
-        res.unwrap().1,
+        sor.key_events.unwrap(),
         KeyEvents {
             number_of_key_events: 3,
             key_events: vec![
@@ -681,10 +650,10 @@ fn test_key_events_block() {
 
 #[test]
 fn test_fixparam_block() {
-    let data = test_load_file_section(BLOCK_ID_FXDPARAMS.to_owned());
-    let res = fixed_parameters_block(data);
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
+    let sor = parse_file(data).unwrap().1;
     assert_eq!(
-        res.unwrap().1,
+        sor.fixed_parameters.unwrap(),
         FixedParametersBlock {
             date_time_stamp: 1569835674,
             units_of_distance: "mt".to_owned(),
@@ -719,10 +688,10 @@ fn test_fixparam_block() {
 
 #[test]
 fn test_supparam_block() {
-    let data = test_load_file_section(BLOCK_ID_SUPPARAMS.to_owned());
-    let res = supplier_parameters_block(data);
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
+    let sor = parse_file(data).unwrap().1;
     assert_eq!(
-        res.unwrap().1,
+        sor.supplier_parameters.unwrap(),
         SupplierParametersBlock {
             supplier_name: "Noyes".to_owned(),
             otdr_mainframe_id: "OFL280C-100".to_owned(),
@@ -737,10 +706,10 @@ fn test_supparam_block() {
 
 #[test]
 fn test_genparam_block() {
-    let data = test_load_file_section(BLOCK_ID_GENPARAMS.to_owned());
-    let res = general_parameters_block(data);
+    let data = include_bytes!("../data/example1-noyes-ofl280.sor");
+    let sor = parse_file(data).unwrap().1;
     assert_eq!(
-        res.unwrap().1,
+        sor.general_parameters.unwrap(),
         GeneralParametersBlock {
             language_code: "EN".to_owned(),
             cable_id: "C001 ".to_owned(),
