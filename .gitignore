@@ -7,3 +7,5 @@ test_*.sor
 /fuzz/coverage
 /fuzz/corpus
 /fuzz/target
+*.pyc
+__pycache__
