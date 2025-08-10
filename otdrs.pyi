@@ -272,6 +272,14 @@ class SORFile:
     data_points: DataPoints | None
     proprietary_blocks: list[ProprietaryBlock]
 
+    def to_bytes(self) -> bytes:
+        """Returns the SOR file as a byte string."""
+        ...
+
+    def write_file(self, path: str) -> None:
+        """Writes the SOR file to the given path."""
+        ...
+
 def parse_file(path: str) -> SORFile:
     """Load a SOR from the given path and parse it"""
 
