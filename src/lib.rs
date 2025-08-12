@@ -13,6 +13,7 @@ pub enum WriteError {
     MissingMandatoryBlock(String),
     MissingBlockInfo(String),
     Utf8EncodingError,
+    FixedLengthStringMismatchError,
 }
 
 impl fmt::Display for WriteError {
@@ -25,6 +26,7 @@ impl fmt::Display for WriteError {
                 write!(f, "BlockInfo block is missing for one of your blocks in the Map!: {}", block)
             }
             WriteError::Utf8EncodingError => write!(f, "A character in a fixed-length string appears to be UTF-8 and require more than one byte to encode, which is not permitted in the standard."),
+            WriteError::FixedLengthStringMismatchError => write!(f, "Fixed-length string exceeds the length specified for the string")
         }
     }
 }
@@ -37,8 +39,8 @@ fn null_terminated_str(b: &mut Vec<u8>, s: &str) {
 }
 
 fn fixed_length_str(b: &mut Vec<u8>, s: &str, len: usize) -> Result<(), WriteError> {
-    if $s.len() > $len {
-        return Err("Fixed-length string exceeds the length specified for the string")
+    if s.len() > len {
+        return Err(WriteError::FixedLengthStringMismatchError);
     }
     let mut bytes: Vec<u8> = Vec::with_capacity(len);
     for c in s.chars() {
@@ -50,7 +52,7 @@ fn fixed_length_str(b: &mut Vec<u8>, s: &str, len: usize) -> Result<(), WriteErr
         bytes.push(byte[0]);
     }
     // Handle scenarios in which the provided string is smaller than the specified length by null padding
-    bytes.resize($len, 0);
+    bytes.resize(len, 0);
     b.extend(bytes);
     Ok(())
 }
@@ -264,10 +266,9 @@ impl SORFile {
 
     fn gen_key_events(&self) -> Result<Vec<u8>, WriteError> {
         let mut bytes: Vec<u8> = Vec::new();
-        let events = self
-            .key_events
-            .as_ref()
-            .ok_or_else(|| WriteError::MissingMandatoryBlock(parser::BLOCK_ID_KEYEVENTS.to_string()))?;
+        let events = self.key_events.as_ref().ok_or_else(|| {
+            WriteError::MissingMandatoryBlock(parser::BLOCK_ID_KEYEVENTS.to_string())
+        })?;
         null_terminated_str(&mut bytes, parser::BLOCK_ID_KEYEVENTS);
         le_integer!(bytes, events.number_of_key_events);
         for ke in &events.key_events {
@@ -306,14 +307,8 @@ impl SORFile {
         le_integer!(bytes, events.last_key_event.marker_location_5);
         null_terminated_str(&mut bytes, &events.last_key_event.comment);
         le_integer!(bytes, events.last_key_event.end_to_end_loss);
-        le_integer!(
-            bytes,
-            events.last_key_event.end_to_end_marker_position_1
-        );
-        le_integer!(
-            bytes,
-            events.last_key_event.end_to_end_marker_position_2
-        );
+        le_integer!(bytes, events.last_key_event.end_to_end_marker_position_1);
+        le_integer!(bytes, events.last_key_event.end_to_end_marker_position_2);
         le_integer!(bytes, events.last_key_event.optical_return_loss);
         le_integer!(
             bytes,
@@ -328,10 +323,9 @@ impl SORFile {
 
     fn gen_data_points(&self) -> Result<Vec<u8>, WriteError> {
         let mut bytes: Vec<u8> = Vec::new();
-        let dp = self
-            .data_points
-            .as_ref()
-            .ok_or_else(|| WriteError::MissingMandatoryBlock(parser::BLOCK_ID_DATAPTS.to_string()))?;
+        let dp = self.data_points.as_ref().ok_or_else(|| {
+            WriteError::MissingMandatoryBlock(parser::BLOCK_ID_DATAPTS.to_string())
+        })?;
         null_terminated_str(&mut bytes, parser::BLOCK_ID_DATAPTS);
         le_integer!(bytes, dp.number_of_data_points);
         le_integer!(bytes, dp.total_number_scale_factors_used);
@@ -434,10 +428,7 @@ fn test_roundtrip_sor_with_modification() {
     let out_sor = parser::parse_file(&bytes).unwrap().1;
 
     // Assert that the modified value is present in the re-parsed struct
-    assert_eq!(
-        out_sor.general_parameters.unwrap().cable_id,
-        new_cable_id
-    );
+    assert_eq!(out_sor.general_parameters.unwrap().cable_id, new_cable_id);
 }
 
 #[test]

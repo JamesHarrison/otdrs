@@ -99,14 +99,12 @@ fn get_ascii_str(s: &[u8]) -> Result<&str, Error<&[u8]>> {
 fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
     #[allow(clippy::redundant_closure)]
     map_res(null_terminated_chunk, |s| get_ascii_str(s)).parse(i)
-    map_res(null_terminated_chunk, str::from_utf8).parse(i)
 }
 
 /// Parse a fixed-length string of the given number of bytes
 fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
     #[allow(clippy::redundant_closure)]
     map_res(take(n_bytes), get_ascii_str).parse(i)
-    map_res(take(n_bytes), str::from_utf8).parse(i)
 }
 
 /// Parse the general parameters block, which contains acquisition information
@@ -444,13 +442,19 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
     let mut total_size: u64 = 0;
     for block in &map.block_info {
         if block.size < 0 {
-            return Err(Err::Failure(Error { input: i, code: ErrorKind::Verify }));
+            return Err(Err::Failure(Error {
+                input: i,
+                code: ErrorKind::Verify,
+            }));
         }
         total_size += block.size as u64;
     }
 
     if total_size > rest.len() as u64 {
-        return Err(Err::Failure(Error { input: i, code: ErrorKind::Verify }));
+        return Err(Err::Failure(Error {
+            input: i,
+            code: ErrorKind::Verify,
+        }));
     }
 
     let mut general_parameters: Option<GeneralParametersBlock> = None;
