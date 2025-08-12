@@ -11,6 +11,7 @@ use serde::Serialize;
     feature = "python",
     pyclass(frozen, eq, hash, module = "otdrs", get_all)
 )]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct BlockInfo {
     /// Name of the block
     pub identifier: String,
@@ -26,6 +27,7 @@ pub struct BlockInfo {
     feature = "python",
     pyclass(frozen, eq, hash, module = "otdrs", get_all)
 )]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct MapBlock {
     /// Revision number - major (3 digits), minor, cosmetic - for the file as a
     /// whole
@@ -46,6 +48,7 @@ pub struct MapBlock {
     feature = "python",
     pyclass(frozen, eq, hash, module = "otdrs", get_all)
 )]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct GeneralParametersBlock {
     /// Language code - EN, CN, JP, etc.
     pub language_code: String,
@@ -84,6 +87,7 @@ pub struct GeneralParametersBlock {
 /// calibration dates in the "other" field.
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct SupplierParametersBlock {
     /// Manufacturer of the OTDR
     pub supplier_name: String,
@@ -105,6 +109,7 @@ pub struct SupplierParametersBlock {
 /// data
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct FixedParametersBlock {
     /// Datestamp - unix epoch seconds, 32-bit. Remember not to do any OTDR
     /// tests after 2038.
@@ -181,6 +186,7 @@ pub struct FixedParametersBlock {
 /// KeyEvents describe a single event along the fibre path detected by the OTDR
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct KeyEvent {
     /// Event number - this is from 0 to n
     pub event_number: i16,
@@ -226,6 +232,7 @@ pub struct KeyEvent {
 /// KeyEvent for the documentation of other fields
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct LastKeyEvent {
     pub event_number: i16,
     pub event_propogation_time: i32,
@@ -258,6 +265,7 @@ pub struct LastKeyEvent {
 /// List of key events and a pointer to the last key event
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct KeyEvents {
     pub number_of_key_events: i16,
     pub key_events: Vec<KeyEvent>,
@@ -269,6 +277,7 @@ pub struct KeyEvents {
 /// information such as WGS84 GPS data, known fibre MFDs, metre markers, etc
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Landmark {
     pub landmark_number: i16,
     /// Landmark code identifies the landmark - see page 27 of the standard for
@@ -293,6 +302,7 @@ pub struct Landmark {
 /// points of the measurements for a given scale factor
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct DataPointsAtScaleFactor {
     /// Number of points in this block
     pub n_points: i32,
@@ -306,6 +316,7 @@ pub struct DataPointsAtScaleFactor {
 /// factor
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct DataPoints {
     pub number_of_data_points: i32,
     pub total_number_scale_factors_used: i16,
@@ -318,6 +329,7 @@ pub struct DataPoints {
 /// relate this to described KeyEvents
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct LinkParameters {
     pub number_of_landmarks: i16,
     pub landmarks: Vec<Landmark>,
@@ -329,6 +341,8 @@ pub struct LinkParameters {
 /// otdrs extracts the header, and stores the data as an array of bytes.
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+
 pub struct ProprietaryBlock {
     pub header: String,
     pub data: Vec<u8>,
@@ -339,6 +353,7 @@ pub struct ProprietaryBlock {
 /// in fact mandatory in the specification so compliant files will provide them.
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct SORFile {
     pub map: MapBlock,
     pub general_parameters: Option<GeneralParametersBlock>,

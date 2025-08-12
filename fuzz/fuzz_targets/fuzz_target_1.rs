@@ -13,13 +13,10 @@ fuzz_target!(|data: &[u8]| {
                         Ok(_res) => "OK",
                         Err(_err) => "Failed to parse written file",
                     }
-                },
-                Err(_sorerr) => "Failed to write file"
+                }
+                Err(_sorerr) => "Failed to write file",
             }
-            
-        },
+        }
         Err(_err) => "Parse error",
     };
-    
-    
 });

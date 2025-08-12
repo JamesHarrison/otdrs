@@ -10,8 +10,8 @@ edition = "2018"
 cargo-fuzz = true
 
 [dependencies]
-libfuzzer-sys = "0.3"
-otdrs = { path = ".." }
+libfuzzer-sys = "0.4.0"
+otdrs = { path = "..", features = ["arbitrary"] }
 
 # Prevent this from interfering with workspaces
 [workspace]
@@ -22,3 +22,15 @@ name = "fuzz_target_1"
 path = "fuzz_targets/fuzz_target_1.rs"
 test = false
 doc = false
+[[bin]]
+name = "fuzz_target_sa"
+path = "fuzz_targets/fuzz_target_sa.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_target_sa_datavalidation"
+path = "fuzz_targets/fuzz_target_sa_datavalidation.rs"
+test = false
+doc = false
+bench = false

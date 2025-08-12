@@ -16,6 +16,9 @@ macro_rules! null_terminated_str {
 }
 macro_rules! fixed_length_str {
     ( $b:expr, $s:expr, $len:expr ) => {
+        if $s.len() > $len {
+            return Err("Fixed-length string exceeds the length specified for the string")
+        }
         let mut bytes: Vec<u8> = Vec::with_capacity($len);
         for c in $s.chars() {
             let mut byte = [0; 1];
@@ -25,6 +28,8 @@ macro_rules! fixed_length_str {
             c.encode_utf8(&mut byte);
             bytes.push(byte[0]);
         }
+        // Handle scenarios in which the provided string is smaller than the specified length by null padding
+        bytes.resize($len, 0);
         $b.extend(bytes);
     };
 }

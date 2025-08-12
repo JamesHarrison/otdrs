@@ -84,17 +84,27 @@ fn null_terminated_chunk(i: &[u8]) -> IResult<&[u8], &[u8]> {
     terminated(take_until("\0"), tag("\0")).parse(i)
 }
 
+// Ensure that the bytes we've been passed are in fact ASCII only.
+// SR-4731 does not explicitly specify an encoding, but given the vintage, UTF-8 isn't supported by any equipment or software.
+fn get_ascii_str(s: &[u8]) -> Result<&str, Error<&[u8]>> {
+    if s.iter().any(|&b| b >= 128) {
+        return Err(Error::new(s, ErrorKind::Verify));
+    }
+    // Trim nulls - this handles scenarios for padded fixed-length strings
+    let end = s.iter().position(|&b| b == 0).unwrap_or(s.len());
+    let trimmed = &s[..end];
+    std::str::from_utf8(trimmed).map_err(|_| Error::new(trimmed, ErrorKind::MapRes))
+}
 /// Parse a null-terminated variable length string
 fn null_terminated_str(i: &[u8]) -> IResult<&[u8], &str> {
     #[allow(clippy::redundant_closure)]
-    map_res(null_terminated_chunk, |s| str::from_utf8(s)).parse(i)
+    map_res(null_terminated_chunk, |s| get_ascii_str(s)).parse(i)
 }
 
 /// Parse a fixed-length string of the given number of bytes
-
 fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
     #[allow(clippy::redundant_closure)]
-    map_res(take(n_bytes * (1u8 as usize)), |s| str::from_utf8(s)).parse(i)
+    map_res(take(n_bytes), get_ascii_str).parse(i)
 }
 
 /// Parse the general parameters block, which contains acquisition information
@@ -833,4 +843,19 @@ fn test_null_terminated_chunk() {
     let data = res.unwrap();
     assert_eq!(data.0, "".as_bytes()); // make sure we've consumed the null
     assert_eq!(data.1, "abcdef".as_bytes());
+}
+
+#[test]
+#[should_panic]
+fn test_unicode_handling() {
+    let test_str = "⏚";
+    let res = get_ascii_str(test_str.as_bytes());
+    res.unwrap();
+}
+#[test]
+fn test_ascii_handling() {
+    let test_str = "ascii";
+    let res = get_ascii_str(test_str.as_bytes());
+    let data = res.unwrap();
+    assert_eq!(data, test_str);
 }
