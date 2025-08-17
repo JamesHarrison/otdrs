@@ -151,6 +151,7 @@ While "fixing" vendor quirks to generate a *standards-compliant* output is not c
 
 ## Versions
 
+* 1.1.0 - Adds checksum parsing support, fixes incorrect initialisation vector in checksum block generation
 * 1.0.5 - License change from GPLv3 to LGPLv3
 * 1.0.4 - Python module type hints, dependency fix
 * 1.0.3 - Python module fixes
