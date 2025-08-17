@@ -80,6 +80,12 @@ sor_from_bytes == sor_from_file #=> True
 
 The resulting objects and methods are fully type hinted.
 
+### Checksums and file validation
+
+`otdrs` computes checksums when generating SOR file bytes, and can be used to validate checksums after files are parsed.
+
+Checksums are optional and most software doesn't either produce or validate them, but `otdrs` will try several strategies (given the vagueness of the spec) to match any supplied checksum against bytes in the file, and return an enum containing details of the match. Callers can then surface this information or ignore it.
+
 ## Code Quality, Conformance/Compliance
 
 This is the author's first major Rust project, so use with caution.
@@ -90,7 +96,7 @@ This is absolutely not guaranteed to work in all cases with all files or produce
 
 As `otdrs` handles arbitrary binary input and performs some arithmetic on it which can potentially lead to underruns and overruns as well as exciting undefined behaviour.
 
-While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur, including through writing and round-tripping OTDR files.
+While Rust is a very good language to write such tools in, since runtime errors such as this are handled, `otdrs` makes an effort to avoid obvious situations where slice pointers violate bounds or where arithmetic on SOR contents may lead to unexpected situations. [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) is used to fuzz with libFuzzer (on Linux only at present) to discover scenarios in which this can occur, including through writing and round-tripping OTDR files and structure-aware fuzzing. AFL can also be used for fuzzing, though given the large binary inputs this isn't recommended.
 
 Checking of result validity is not performed on all fields, and users of the tool should take care to avoid trusting input parsed from SOR files. Sanitise your inputs.
 

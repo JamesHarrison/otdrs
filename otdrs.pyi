@@ -256,6 +256,11 @@ class ProprietaryBlock:
     header: str
     data: list[int]
 
+class ChecksumBlock:
+    """File checksum block."""
+    checksum: int
+
+
 class SORFile:
     """A SOR file.
     SORFile describes a full SOR file. All blocks except MapBlock are optional types as we cannot
@@ -271,6 +276,7 @@ class SORFile:
     link_parameters: LinkParameters | None
     data_points: DataPoints | None
     proprietary_blocks: list[ProprietaryBlock]
+    checksum: ChecksumBlock | None
 
     def to_bytes(self) -> bytes:
         """Returns the SOR file as a byte string."""
@@ -278,6 +284,16 @@ class SORFile:
 
     def write_file(self, path: str) -> None:
         """Writes the SOR file to the given path."""
+        ...
+
+    def validate_checksum(self, data: bytes) -> enum.Enum:
+        """Validates the specified raw bytes using the parsed file data.
+
+        Checksums for OTDR data are optional and poorly-defined,
+        so parsing the file before performing the checksum allows us to be smart about
+        trying different strategies for how the checksum might have been computed.
+
+        Returns an enum. You should generally treat a missing checksum as non-fatal."""
         ...
 
 def parse_file(path: str) -> SORFile:

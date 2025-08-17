@@ -348,6 +348,16 @@ pub struct ProprietaryBlock {
     pub data: Vec<u8>,
 }
 
+// ChecksumBlock stores a checksum value, computed from 0xffff.
+#[derive(Debug, PartialEq, Serialize, Clone)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+
+pub struct ChecksumBlock {
+    pub checksum: i16,
+}
+
+
 /// SORFile describes a full SOR file. All blocks except MapBlock are Option
 /// types as we cannot guarantee the parser will find them, but many blocks are
 /// in fact mandatory in the specification so compliant files will provide them.
@@ -363,4 +373,42 @@ pub struct SORFile {
     pub link_parameters: Option<LinkParameters>,
     pub data_points: Option<DataPoints>,
     pub proprietary_blocks: Vec<ProprietaryBlock>,
+    pub checksum: Option<ChecksumBlock>,
+}
+
+
+/// Informational checksum validation status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+pub enum ChecksumStatus {
+    /// No checksum block was present.
+    Missing,
+    /// A checksum block exists and at least one strategy matched the stored value.
+    Valid,
+    /// A checksum block exists but no strategy matched.
+    Mismatch,
+    /// The checksum block is present but appears truncated or offsets cannot be derived safely.
+    Error,
+}
+
+/// Strategy that produced a match (if any).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+pub enum ChecksumStrategy {
+    /// CRC over all bytes before the checksum block (i.e., Map + all prior blocks).
+    PrecedingBytes,
+    /// CRC over entire file with only the checksum field (2 bytes) zeroed.
+    WholeFileChecksumZeroed,
+    /// CRC over entire file excluding the entire checksum block ("Cksum\0" + 2 bytes).
+    WholeFileExcludingBlock,
+}
+
+/// Result of checksum validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "python", pyclass(frozen, eq, module = "otdrs", get_all))]
+pub struct ChecksumValidationResult {
+    pub status: ChecksumStatus,
+    pub stored: Option<u16>,
+    pub matched: Option<u16>,
+    pub matched_by: Option<ChecksumStrategy>,
 }

@@ -1,3 +1,4 @@
+.idea
 /target
 *.json
 *.cbor
@@ -9,3 +10,6 @@ test_*.sor
 /fuzz/target
 *.pyc
 __pycache__
+/fuzz-afl/out*
+/fuzz-afl/target
+/fuss-afl/*.sh

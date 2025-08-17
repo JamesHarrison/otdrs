@@ -1,5 +1,5 @@
 use crate::parser;
-use crate::types::SORFile;
+use crate::types::{ChecksumValidationResult, SORFile};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -54,6 +54,14 @@ impl SORFile {
             Err(err) => Err(PyRuntimeError::new_err(err.to_string())),
         }
     }
+
+    /// Validates checksum given the original SOR bytes. Returns a Python-friendly result.
+    #[pyo3(name = "validate_checksum")]
+    fn validate_checksum_py(&self, bytes: &Bound<'_, PyBytes>) -> PyResult<ChecksumValidationResult> {
+        let result = parser::validate_checksum(bytes.as_bytes(), self);
+        Ok(result.into())
+    }
+
 }
 
 /// This module is implemented in Rust.

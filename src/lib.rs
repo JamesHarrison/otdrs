@@ -2,8 +2,9 @@ pub mod parser;
 /// Base library for otdrs
 pub mod types;
 use crate::types::{BlockInfo, MapBlock, ProprietaryBlock, SORFile};
-use crc::{Crc, CRC_16_KERMIT};
+use crc::{Crc, CRC_16_IBM_3740};
 use std::fmt;
+
 // Include Python if feature enabled
 #[cfg(feature = "python")]
 pub mod python;
@@ -161,8 +162,9 @@ impl SORFile {
         new_map.block_size += (parser::BLOCK_ID_CHECKSUM.len() + 1 + 2 + 4) as i32;
 
         let mut map_bytes = self.gen_map(new_map)?;
+        // Now construct the final file: map, then block data, then the checksum block
         map_bytes.extend(bytes);
-
+        // Compute the checksum over the assembled map and data bytes
         let cs_block = self.gen_checksum_block(&map_bytes)?;
         map_bytes.extend(cs_block);
 
@@ -349,7 +351,7 @@ impl SORFile {
     fn gen_checksum_block(&self, data: &Vec<u8>) -> Result<Vec<u8>, WriteError> {
         let mut bytes: Vec<u8> = Vec::new();
         null_terminated_str(&mut bytes, parser::BLOCK_ID_CHECKSUM);
-        let crc: Crc<u16> = Crc::<u16>::new(&CRC_16_KERMIT);
+        let crc: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_3740);
         le_integer!(bytes, crc.checksum(data.as_slice()));
 
         Ok(bytes)
@@ -414,6 +416,20 @@ fn test_roundtrip_sor() {
     assert_eq!(in_sor.link_parameters, out_sor.link_parameters);
     assert_eq!(in_sor.data_points, out_sor.data_points);
     assert_eq!(in_sor.proprietary_blocks, out_sor.proprietary_blocks);
+}
+
+#[test]
+fn test_roundtrip_sor_checksums() {
+    let in_sor = test_sor_load();
+    let bytes = in_sor.to_bytes().unwrap();
+    let out_sor = parser::parse_file(&bytes).unwrap().1;
+    assert_eq!(in_sor.general_parameters, out_sor.general_parameters);
+    let checksum = parser::validate_checksum(&bytes, &out_sor);
+    assert_eq!(checksum.status, types::ChecksumStatus::Valid);
+    assert_eq!(
+        checksum.matched_by.unwrap(),
+        types::ChecksumStrategy::PrecedingBytes
+    );
 }
 
 #[test]

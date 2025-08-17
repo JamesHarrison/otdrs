@@ -1,17 +1,10 @@
 use crate::types::{
     BlockInfo, DataPoints, DataPointsAtScaleFactor, FixedParametersBlock, GeneralParametersBlock,
     KeyEvent, KeyEvents, Landmark, LastKeyEvent, LinkParameters, MapBlock, ProprietaryBlock,
-    SORFile, SupplierParametersBlock,
+    SORFile, SupplierParametersBlock, ChecksumBlock, ChecksumStatus,ChecksumStrategy, ChecksumValidationResult
 };
-use nom::{
-    bytes::complete::{tag, take, take_until},
-    combinator::map_res,
-    error::{Error, ErrorKind},
-    multi::count,
-    number::complete::{le_i16, le_i32, le_u16, le_u32},
-    sequence::terminated,
-    Err, IResult, Parser,
-};
+use nom::{bytes::complete::{tag, take, take_until}, combinator::map_res, error::{Error, ErrorKind}, multi::count, number::complete::{le_i16, le_i32, le_u16, le_u32}, sequence::terminated, AsBytes, Err, IResult, Parser};
+use crc::{Crc, CRC_16_IBM_3740, CRC_16_KERMIT};
 use std::str;
 
 /// Block header string for the map block
@@ -30,6 +23,7 @@ pub const BLOCK_ID_LNKPARAMS: &str = "LnkParams";
 pub const BLOCK_ID_DATAPTS: &str = "DataPts";
 /// Block header string for the checksum block
 pub const BLOCK_ID_CHECKSUM: &str = "Cksum";
+
 
 /// Parses to look for a block header, null-terminated, and returns the bytes
 /// (sans null character)
@@ -421,6 +415,19 @@ pub fn data_points_block(i: &[u8]) -> IResult<&[u8], DataPoints> {
         },
     ))
 }
+
+/// Parse the checksum block
+pub fn checksum_block(i: &[u8]) -> IResult<&[u8], ChecksumBlock> {
+    let (i, _) = block_header(i, BLOCK_ID_CHECKSUM)?;
+    let (i, checksum) = le_i16(i)?;
+    Ok((
+        i,
+        ChecksumBlock {
+            checksum,
+        },
+    ))
+}
+
 /// Parse the header string from a proprietary block, and return the remaining
 /// data for external parsers.
 pub fn proprietary_block(i: &[u8]) -> IResult<&[u8], ProprietaryBlock> {
@@ -464,6 +471,7 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
     let link_parameters: Option<LinkParameters> = None;
     let mut data_points: Option<DataPoints> = None;
     let mut proprietary_blocks: Vec<ProprietaryBlock> = Vec::new();
+    let mut checksum: Option<ChecksumBlock> = None;
 
     for block in &map.block_info {
         let (r, data) = take(block.size as usize)(rest)?;
@@ -494,7 +502,29 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
                 data_points = Some(ret);
             }
             BLOCK_ID_CHECKSUM => {
-                // TODO: Checksum checks should probably be handled elsewhere
+                // Checksums are optional, and there's a great reason for this.
+                // The specification is too vague on the definition of how to compute it, given that:
+                // - The map must contain the checksum block information
+                // - The map may be considered part of the data file
+                // - The checksum block (up to the checksum value) might be considered part of the file
+                // - It is not specified in detail where the data to be checksummed starts and ends
+                // - There is no requirement for the checksum block to be at a specific location (e.g. the end of the file)
+                // - The cyclic redundancy check definition is vague - it refers to a 16-bit CRC, CCITT, but specifies a different initialisation vector (0xffff)
+                // The latter means we need to use the "IBM 3740" or "CCITT-FALSE" implementation, which uses the same polynomial as the "true" CCITT implementation with the different IV
+                // However, early versions of this library and I'm sure other implementors got this wrong, understandably.
+                //
+                // When generating our checksum (see SORFile#gen_checksum_block) we assemble the map
+                // and the data blocks. We then compute the checksum of all the bytes in the file and
+                // then suffix the completed checksum block.
+                //
+                // However, we could also envisage:
+                // - checksums not covering proprietary blocks
+                // - checksums omitting the map block, and just checksumming the block data
+                // - checksums including the checksum block up to the actual checksum data value
+                // - checksums just covering the actual OTDR data
+                // In practice very few (none I am aware of) tools or OTDRs emit checksums, or validate them.
+                let (_, ret) = checksum_block(data)?;
+                checksum = Some(ret);
             }
             _ => {
                 // Handle proprietary blocks
@@ -515,8 +545,246 @@ pub fn parse_file<'a>(i: &'a [u8]) -> IResult<&'a [u8], SORFile> {
             link_parameters,
             data_points,
             proprietary_blocks,
+            checksum,
         },
     ))
+}
+
+/// Compare checksums using either CRC-16 CCITT-FALSE or CCITT-KERMIT (0xFFFF or 0x0000 init of the same polynomials)
+/// This accommodates implementor's likely mistakes and vagueness in the specification with a low risk of false positives.
+fn compare_checksums(bytes: &[u8], target_value: u16) -> Result<u16,&'static str> {
+    
+    let crc16_false = Crc::<u16>::new(&CRC_16_IBM_3740);
+    let crc16_kermit = Crc::<u16>::new(&CRC_16_KERMIT);
+    let computed_false = crc16_false.checksum(&bytes);
+    if computed_false == target_value {
+        return Ok(computed_false)
+    }
+    let computed_kermit = crc16_kermit.checksum(&bytes);
+    if computed_kermit == target_value {
+        return Ok(computed_kermit)
+    }
+    Err("No match found")
+}
+
+/// Validate checksum using Map-supplied layout and the parsed stored value.
+/// - bytes: the same byte slice you parsed into SORFile (unmodified).
+/// - sor: the parsed SORFile from parse_file(bytes).
+/// Purely informational: does not affect parsing
+pub fn validate_checksum(bytes: &[u8], sor: &SORFile) -> ChecksumValidationResult {
+    // If there is no checksum block parsed, report Missing.
+    let Some(parsed_cksum) = sor.checksum.as_ref() else {
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Missing,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    };
+
+    // Locate the checksum block in the Map and compute absolute offsets
+    let map = &sor.map;
+    if map.block_size < 0 {
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Error,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    }
+    let map_len = map.block_size as usize;
+
+    // Find index and size of checksum block
+    let mut checksum_index: Option<usize> = None;
+    for (idx, bi) in map.block_info.iter().enumerate() {
+        if bi.identifier.as_str() == BLOCK_ID_CHECKSUM {
+            checksum_index = Some(idx);
+            break;
+        }
+    }
+
+    let Some(ck_idx) = checksum_index else {
+        // Parsed checksum exists but Map doesn't list it; treat as Error.
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Error,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    };
+
+    let ck_block_info = &map.block_info[ck_idx];
+    if ck_block_info.size < 0 {
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Error,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    }
+
+    // Compute absolute start of the blocks region (right after Map)
+    // Then sum sizes of prior blocks to find checksum block start.
+    let mut offset = map_len;
+    for bi in map.block_info.iter().take(ck_idx) {
+        if bi.size < 0 {
+            return ChecksumValidationResult {
+                status: ChecksumStatus::Error,
+                stored: None,
+                matched: None,
+                matched_by: None,
+            };
+        }
+        offset = offset.saturating_add(bi.size as usize);
+    }
+    let checksum_block_start = offset;
+    let checksum_block_len = ck_block_info.size as usize;
+
+    // Sanity: ensure ranges are within the input bytes
+    if checksum_block_start > bytes.len() || checksum_block_start + checksum_block_len > bytes.len()
+    {
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Error,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    }
+
+    // Header is a null-terminated "Cksum"
+    let header_len = BLOCK_ID_CHECKSUM.len() + 1; // "Cksum" + NUL
+    // Ensure the checksum field is within the block
+    if header_len + 2 > checksum_block_len {
+        return ChecksumValidationResult {
+            status: ChecksumStatus::Error,
+            stored: None,
+            matched: None,
+            matched_by: None,
+        };
+    }
+
+    // Stored checksum from the parsed block (i16 in struct, interpret as u16)
+    let stored = parsed_cksum.checksum as u16;
+
+    // Strategy 1: CRC over all bytes before the checksum block.
+    {
+        // That is: [0 .. checksum_block_start)
+        let computed = compare_checksums(&bytes[..checksum_block_start], stored);
+        if computed.is_ok() {
+            return ChecksumValidationResult {
+                status: ChecksumStatus::Valid,
+                stored: Some(stored),
+                matched: Some(computed.unwrap()),
+                matched_by: Some(ChecksumStrategy::PrecedingBytes),
+            };
+        }
+    }
+
+    // Strategy 2: CRC over the whole file with only the checksum field zeroed.
+    {
+        // Checksum field starts immediately after header within the block.
+        let checksum_field_off = checksum_block_start + header_len;
+
+        // Safety check: make sure we can zero 2 bytes
+        if checksum_field_off + 2 <= bytes.len() {
+            let zeroed_checksum_bytes = &mut bytes[..checksum_field_off].to_vec();
+            zeroed_checksum_bytes.append(&mut [0u8, 0u8].to_vec());
+            zeroed_checksum_bytes.append(&mut bytes[checksum_field_off + 2..].to_vec());
+            let computed = compare_checksums(zeroed_checksum_bytes.as_bytes(), stored);
+            if computed.is_ok() {
+                return ChecksumValidationResult {
+                    status: ChecksumStatus::Valid,
+                    stored: Some(stored),
+                    matched: Some(computed.unwrap()),
+                    matched_by: Some(ChecksumStrategy::WholeFileChecksumZeroed),
+                };
+            }
+        } else {
+            // Field went out of range: treat as Error.
+            return ChecksumValidationResult {
+                status: ChecksumStatus::Error,
+                stored: Some(stored),
+                matched: None,
+                matched_by: None,
+            };
+        }
+    }
+
+    // Strategy 3: CRC over whole file excluding the entire checksum block.
+    {
+        let after = checksum_block_start + checksum_block_len;
+        if after <= bytes.len() {
+            let excluding_checksum_bytes = &mut bytes[..checksum_block_start].to_vec();
+            excluding_checksum_bytes.append(&mut bytes[after..].to_vec());
+            let computed = compare_checksums(excluding_checksum_bytes.as_bytes(), stored);
+            if computed.is_ok() {
+                return ChecksumValidationResult {
+                    status: ChecksumStatus::Valid,
+                    stored: Some(stored),
+                    matched: Some(computed.unwrap()),
+                    matched_by: Some(ChecksumStrategy::WholeFileExcludingBlock),
+                };
+            }
+        } else {
+            return ChecksumValidationResult {
+                status: ChecksumStatus::Error,
+                stored: Some(stored),
+                matched: None,
+                matched_by: None,
+            };
+        }
+    }
+
+    // None matched
+    ChecksumValidationResult {
+        status: ChecksumStatus::Mismatch,
+        stored: Some(stored),
+        matched: None,
+        matched_by: None,
+    }
+}
+
+#[test]
+fn test_validate_checksum_valid_on_writer_output() {
+    // Load a real SOR (vendor example), then serialize with our writer,
+    // which appends a checksum block computed over map+data.
+    let data = include_bytes!("../data/example4-exfo-ftb4ftbx730c-mfdgainer-1310nm.sor");
+    let in_sor = parse_file(data).unwrap().1;
+
+    let bytes = in_sor.to_bytes().unwrap();
+    let out_sor = parse_file(&bytes).unwrap().1;
+
+    let res = validate_checksum(&bytes, &out_sor);
+    assert_eq!(res.status, ChecksumStatus::Valid);
+    // Our writer computes checksum over map+data and then appends the checksum block,
+    // so excluding the checksum block should match.
+    assert_eq!(res.matched_by, Some(ChecksumStrategy::PrecedingBytes));
+}
+
+#[test]
+fn test_validate_checksum_mismatch_after_corruption() {
+    // Start from a known-good writer output (has a valid checksum),
+    // then flip one byte in the data region to break the checksum.
+    let data = include_bytes!("../data/example4-exfo-ftb4ftbx730c-mfdgainer-1310nm.sor");
+    let in_sor = parse_file(data).unwrap().1;
+
+    let bytes = in_sor.to_bytes().unwrap();
+    let out_sor = parse_file(&bytes).unwrap().1;
+
+    // Compute the start of the checksum block from the Map to avoid corrupting it.
+    let map = &out_sor.map;
+    let map_len = map.block_size as usize;
+
+    let mut corrupted = bytes.clone();
+    // Pick somewhere which isn't going to break parsing but will differ in data (found experimentally)
+    let corrupt_index = map_len + 1000;
+    corrupted[corrupt_index] ^= 0xFF;
+
+    let sor_corrupted = parse_file(&corrupted).unwrap().1;
+    let res_bad = validate_checksum(&corrupted, &sor_corrupted);
+
+    assert_eq!(res_bad.status, ChecksumStatus::Mismatch);
+    assert!(res_bad.matched.is_none());
 }
 
 #[test]
