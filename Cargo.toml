@@ -1,8 +1,8 @@
 [package]
 name = "otdrs"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["James Harrison <james@talkunafraid.co.uk>"]
-edition = "2021"
+edition = "2024"
 description = "otdrs is a tool to convert OTDR Bellcore SOR files to Serdes-compatible structs and JSON/CBOR thereafter, usable as a Rust library or as a standalone tool; it can also write SORs from Rust data structures"
 license = "LGPL-3.0"
 documentation = "https://github.com/JamesHarrison/otdrs"

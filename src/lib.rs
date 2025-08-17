@@ -58,11 +58,22 @@ fn fixed_length_str(b: &mut Vec<u8>, s: &str, len: usize) -> Result<(), WriteErr
     Ok(())
 }
 
-macro_rules! le_integer {
-    ( $b:expr, $i:expr ) => {
-        $b.extend(&$i.to_le_bytes());
-    };
+// Write any integer (e.g., i16, u16, i32, u32, etc.) in little-endian form.
+fn le_integer<T>(b: &mut Vec<u8>, i: T)
+where
+    T: Copy + Into<i64> + 'static,
+{
+    let mut v = i.into() as u64;
+    let n = core::mem::size_of::<T>();
+    // Efficiency: allocate the capacity we need
+    b.reserve(n);
+    // Write out bytes in LE order
+    for _ in 0..n {
+        b.push((v & 0xFF) as u8);
+        v >>= 8;
+    }
 }
+
 
 impl SORFile {
     pub fn to_bytes(&self) -> Result<Vec<u8>, WriteError> {
@@ -174,16 +185,16 @@ impl SORFile {
     fn gen_map(&self, map: MapBlock) -> Result<Vec<u8>, WriteError> {
         let mut bytes: Vec<u8> = Vec::new();
         null_terminated_str(&mut bytes, parser::BLOCK_ID_MAP);
-        le_integer!(bytes, map.revision_number);
-        le_integer!(
+        le_integer(&mut bytes, map.revision_number);
+        le_integer(&mut
             bytes,
             map.block_size + (parser::BLOCK_ID_MAP.len() as i32) + 1 + 2 + 4 + 2
         );
-        le_integer!(bytes, map.block_count + 1);
+        le_integer(&mut bytes, map.block_count + 1);
         for bi in map.block_info {
             null_terminated_str(&mut bytes, &bi.identifier);
-            le_integer!(bytes, bi.revision_number);
-            le_integer!(bytes, bi.size);
+            le_integer(&mut bytes, bi.revision_number);
+            le_integer(&mut bytes, bi.size);
         }
         Ok(bytes)
     }
@@ -197,14 +208,14 @@ impl SORFile {
         fixed_length_str(&mut bytes, &gp.language_code, 2)?;
         null_terminated_str(&mut bytes, &gp.cable_id);
         null_terminated_str(&mut bytes, &gp.fiber_id);
-        le_integer!(bytes, gp.fiber_type);
-        le_integer!(bytes, gp.nominal_wavelength);
+        le_integer(&mut bytes, gp.fiber_type);
+        le_integer(&mut bytes, gp.nominal_wavelength);
         null_terminated_str(&mut bytes, &gp.originating_location);
         null_terminated_str(&mut bytes, &gp.terminating_location);
         null_terminated_str(&mut bytes, &gp.cable_code);
         fixed_length_str(&mut bytes, &gp.current_data_flag, 2)?;
-        le_integer!(bytes, gp.user_offset);
-        le_integer!(bytes, gp.user_offset_distance);
+        le_integer(&mut bytes, gp.user_offset);
+        le_integer(&mut bytes, gp.user_offset_distance);
         null_terminated_str(&mut bytes, &gp.operator);
         null_terminated_str(&mut bytes, &gp.comment);
         Ok(bytes)
@@ -230,39 +241,39 @@ impl SORFile {
             WriteError::MissingMandatoryBlock(parser::BLOCK_ID_FXDPARAMS.to_string())
         })?;
         null_terminated_str(&mut bytes, parser::BLOCK_ID_FXDPARAMS);
-        le_integer!(bytes, fp.date_time_stamp);
+        le_integer(&mut bytes, fp.date_time_stamp);
         fixed_length_str(&mut bytes, &fp.units_of_distance, 2)?;
-        le_integer!(bytes, fp.actual_wavelength);
-        le_integer!(bytes, fp.acquisition_offset);
-        le_integer!(bytes, fp.acquisition_offset_distance);
-        le_integer!(bytes, fp.total_n_pulse_widths_used);
+        le_integer(&mut bytes, fp.actual_wavelength);
+        le_integer(&mut bytes, fp.acquisition_offset);
+        le_integer(&mut bytes, fp.acquisition_offset_distance);
+        le_integer(&mut bytes, fp.total_n_pulse_widths_used);
         for pulse_width in &fp.pulse_widths_used {
-            le_integer!(bytes, *pulse_width);
+            le_integer(&mut bytes, *pulse_width);
         }
         for data_spacing in &fp.data_spacing {
-            le_integer!(bytes, *data_spacing);
+            le_integer(&mut bytes, *data_spacing);
         }
         for n_data_points_for_pulse_widths_used in &fp.n_data_points_for_pulse_widths_used {
-            le_integer!(bytes, *n_data_points_for_pulse_widths_used);
+            le_integer(&mut bytes, *n_data_points_for_pulse_widths_used);
         }
-        le_integer!(bytes, fp.group_index);
-        le_integer!(bytes, fp.backscatter_coefficient);
-        le_integer!(bytes, fp.number_of_averages);
-        le_integer!(bytes, fp.averaging_time);
-        le_integer!(bytes, fp.acquisition_range);
-        le_integer!(bytes, fp.acquisition_range_distance);
-        le_integer!(bytes, fp.front_panel_offset);
-        le_integer!(bytes, fp.noise_floor_level);
-        le_integer!(bytes, fp.noise_floor_scale_factor);
-        le_integer!(bytes, fp.power_offset_first_point);
-        le_integer!(bytes, fp.loss_threshold);
-        le_integer!(bytes, fp.reflectance_threshold);
-        le_integer!(bytes, fp.end_of_fibre_threshold);
+        le_integer(&mut bytes, fp.group_index);
+        le_integer(&mut bytes, fp.backscatter_coefficient);
+        le_integer(&mut bytes, fp.number_of_averages);
+        le_integer(&mut bytes, fp.averaging_time);
+        le_integer(&mut bytes, fp.acquisition_range);
+        le_integer(&mut bytes, fp.acquisition_range_distance);
+        le_integer(&mut bytes, fp.front_panel_offset);
+        le_integer(&mut bytes, fp.noise_floor_level);
+        le_integer(&mut bytes, fp.noise_floor_scale_factor);
+        le_integer(&mut bytes, fp.power_offset_first_point);
+        le_integer(&mut bytes, fp.loss_threshold);
+        le_integer(&mut bytes, fp.reflectance_threshold);
+        le_integer(&mut bytes, fp.end_of_fibre_threshold);
         fixed_length_str(&mut bytes, &fp.trace_type, 2)?;
-        le_integer!(bytes, fp.window_coordinate_1);
-        le_integer!(bytes, fp.window_coordinate_2);
-        le_integer!(bytes, fp.window_coordinate_3);
-        le_integer!(bytes, fp.window_coordinate_4);
+        le_integer(&mut bytes, fp.window_coordinate_1);
+        le_integer(&mut bytes, fp.window_coordinate_2);
+        le_integer(&mut bytes, fp.window_coordinate_3);
+        le_integer(&mut bytes, fp.window_coordinate_4);
         Ok(bytes)
     }
 
@@ -272,51 +283,51 @@ impl SORFile {
             WriteError::MissingMandatoryBlock(parser::BLOCK_ID_KEYEVENTS.to_string())
         })?;
         null_terminated_str(&mut bytes, parser::BLOCK_ID_KEYEVENTS);
-        le_integer!(bytes, events.number_of_key_events);
+        le_integer(&mut bytes, events.number_of_key_events);
         for ke in &events.key_events {
-            le_integer!(bytes, ke.event_number);
-            le_integer!(bytes, ke.event_propogation_time);
-            le_integer!(bytes, ke.attenuation_coefficient_lead_in_fiber);
-            le_integer!(bytes, ke.event_loss);
-            le_integer!(bytes, ke.event_reflectance);
+            le_integer(&mut bytes, ke.event_number);
+            le_integer(&mut bytes, ke.event_propogation_time);
+            le_integer(&mut bytes, ke.attenuation_coefficient_lead_in_fiber);
+            le_integer(&mut bytes, ke.event_loss);
+            le_integer(&mut bytes, ke.event_reflectance);
             fixed_length_str(&mut bytes, &ke.event_code, 6)?;
             fixed_length_str(&mut bytes, &ke.loss_measurement_technique, 2)?;
-            le_integer!(bytes, ke.marker_location_1);
-            le_integer!(bytes, ke.marker_location_2);
-            le_integer!(bytes, ke.marker_location_3);
-            le_integer!(bytes, ke.marker_location_4);
-            le_integer!(bytes, ke.marker_location_5);
+            le_integer(&mut bytes, ke.marker_location_1);
+            le_integer(&mut bytes, ke.marker_location_2);
+            le_integer(&mut bytes, ke.marker_location_3);
+            le_integer(&mut bytes, ke.marker_location_4);
+            le_integer(&mut bytes, ke.marker_location_5);
             null_terminated_str(&mut bytes, &ke.comment);
         }
-        le_integer!(bytes, events.last_key_event.event_number);
-        le_integer!(bytes, events.last_key_event.event_propogation_time);
-        le_integer!(
+        le_integer(&mut bytes, events.last_key_event.event_number);
+        le_integer(&mut bytes, events.last_key_event.event_propogation_time);
+        le_integer(&mut
             bytes,
             events.last_key_event.attenuation_coefficient_lead_in_fiber
         );
-        le_integer!(bytes, events.last_key_event.event_loss);
-        le_integer!(bytes, events.last_key_event.event_reflectance);
+        le_integer(&mut bytes, events.last_key_event.event_loss);
+        le_integer(&mut bytes, events.last_key_event.event_reflectance);
         fixed_length_str(&mut bytes, &events.last_key_event.event_code, 6)?;
         fixed_length_str(
             &mut bytes,
             &events.last_key_event.loss_measurement_technique,
             2,
         )?;
-        le_integer!(bytes, events.last_key_event.marker_location_1);
-        le_integer!(bytes, events.last_key_event.marker_location_2);
-        le_integer!(bytes, events.last_key_event.marker_location_3);
-        le_integer!(bytes, events.last_key_event.marker_location_4);
-        le_integer!(bytes, events.last_key_event.marker_location_5);
+        le_integer(&mut bytes, events.last_key_event.marker_location_1);
+        le_integer(&mut bytes, events.last_key_event.marker_location_2);
+        le_integer(&mut bytes, events.last_key_event.marker_location_3);
+        le_integer(&mut bytes, events.last_key_event.marker_location_4);
+        le_integer(&mut bytes, events.last_key_event.marker_location_5);
         null_terminated_str(&mut bytes, &events.last_key_event.comment);
-        le_integer!(bytes, events.last_key_event.end_to_end_loss);
-        le_integer!(bytes, events.last_key_event.end_to_end_marker_position_1);
-        le_integer!(bytes, events.last_key_event.end_to_end_marker_position_2);
-        le_integer!(bytes, events.last_key_event.optical_return_loss);
-        le_integer!(
+        le_integer(&mut bytes, events.last_key_event.end_to_end_loss);
+        le_integer(&mut bytes, events.last_key_event.end_to_end_marker_position_1);
+        le_integer(&mut bytes, events.last_key_event.end_to_end_marker_position_2);
+        le_integer(&mut bytes, events.last_key_event.optical_return_loss);
+        le_integer(&mut
             bytes,
             events.last_key_event.optical_return_loss_marker_position_1
         );
-        le_integer!(
+        le_integer(&mut
             bytes,
             events.last_key_event.optical_return_loss_marker_position_2
         );
@@ -329,13 +340,13 @@ impl SORFile {
             WriteError::MissingMandatoryBlock(parser::BLOCK_ID_DATAPTS.to_string())
         })?;
         null_terminated_str(&mut bytes, parser::BLOCK_ID_DATAPTS);
-        le_integer!(bytes, dp.number_of_data_points);
-        le_integer!(bytes, dp.total_number_scale_factors_used);
+        le_integer(&mut bytes, dp.number_of_data_points);
+        le_integer(&mut bytes, dp.total_number_scale_factors_used);
         for sf in &dp.scale_factors {
-            le_integer!(bytes, sf.n_points);
-            le_integer!(bytes, sf.scale_factor);
+            le_integer(&mut bytes, sf.n_points);
+            le_integer(&mut bytes, sf.scale_factor);
             for pt in &sf.data {
-                le_integer!(bytes, *pt);
+                le_integer(&mut bytes, *pt);
             }
         }
         Ok(bytes)
@@ -352,7 +363,7 @@ impl SORFile {
         let mut bytes: Vec<u8> = Vec::new();
         null_terminated_str(&mut bytes, parser::BLOCK_ID_CHECKSUM);
         let crc: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_3740);
-        le_integer!(bytes, crc.checksum(data.as_slice()));
+        le_integer(&mut bytes, crc.checksum(data.as_slice()));
 
         Ok(bytes)
     }
