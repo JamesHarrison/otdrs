@@ -1,10 +1,10 @@
 [package]
 name = "otdrs"
-version = "1.0.5"
+version = "1.1.0"
 authors = ["James Harrison <james@talkunafraid.co.uk>"]
 edition = "2018"
 description = "otdrs is a tool to convert OTDR Bellcore SOR files to Serdes-compatible structs and JSON/CBOR thereafter, usable as a Rust library or as a standalone tool; it can also write SORs from Rust data structures"
-license = "GPL-3.0"
+license = "LGPL-3.0"
 documentation = "https://github.com/JamesHarrison/otdrs"
 homepage = "https://github.com/JamesHarrison/otdrs"
 repository = "https://github.com/JamesHarrison/otdrs"
@@ -16,9 +16,9 @@ nom = "8.0.0"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.2"
-clap = { version = "4.5.42", features = ["derive"] }
+clap = { version = "4.5.45", features = ["derive"] }
 crc = "3.3.0"
-arbitrary = { version = "1.4.1", optional = true, features = ["derive"] }
+arbitrary = { version = "1.4.2", optional = true, features = ["derive"] }
 
 [dependencies.pyo3]
 version = "0.25.1"
