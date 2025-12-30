@@ -13,3 +13,7 @@ __pycache__
 /fuzz-afl/out*
 /fuzz-afl/target
 /fuss-afl/*.sh
+/simulator/target
+/simulator/output
+/simulator/*.pdf
+/simulator/example_output

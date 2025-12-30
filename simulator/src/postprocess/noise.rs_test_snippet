@@ -1,0 +1,32 @@
+    #[test]
+    fn test_averaging_recovers_signal_below_floor() {
+        // Signal at -70 dBm (1e-7 mW)
+        let signal_power = Power::new::<milliwatt>(1e-7);
+        let trace = vec![signal_power; 1000];
+        
+        // Noise floor at -65 dBm (3.16e-7 mW)
+        // Signal is ~5dB below noise floor
+        let noise_floor_dbm = -65.0;
+        let noise_floor = noise_floor_power(noise_floor_dbm);
+        
+        // High averaging: noise_std becomes small
+        // Let's say we have enough averages to reduce noise_std to negligible
+        // effectively 100x reduction (max limit in code)
+        let num_averages = 10000.0;
+        let noise_std = noise_std_from_floor(noise_floor_dbm, num_averages);
+        
+        // With current buggy implementation, the output will be clamped to noise_floor
+        // With fix, it should be centered around signal_power
+        let noisy = add_noise_with_floor(&trace, noise_floor, noise_std, Some(42));
+        
+        let mean: f64 = noisy.iter().map(|p| p.get::<milliwatt>()).sum::<f64>() / noisy.len() as f64;
+        let target = signal_power.get::<milliwatt>();
+        
+        println!("Signal: {:.2e}, Floor: {:.2e}, Mean Output: {:.2e}", target, noise_floor.get::<milliwatt>(), mean);
+        
+        // Check if mean matches signal (within 20% tolerance due to remaining noise)
+        // If it's clamped to floor, it will be around 3.16e-7
+        // If correct, it should be around 1e-7
+        assert!((mean - target).abs() < target * 0.2, 
+            "Mean {:.2e} not close to signal {:.2e} (Floor is {:.2e})", mean, target, noise_floor.get::<milliwatt>());
+    }

@@ -1,0 +1,126 @@
+# Example OTDR simulation configuration
+# This simulates a typical FTTH (Fiber to the Home) drop cable
+
+simulation:
+  # Seed for reproducible results
+  seed: 42
+  # Output directory for generated files
+  output_dir: "./example_output"
+  # Base filename (wavelength will be appended)
+  output_basename: "dc_example"
+
+# Define the fiber network
+network:
+  name: "Example Datacenter IC"
+  
+  segments:
+    # Meet me room
+    - length_m: 300.0
+      fiber_type: G657A1
+    
+    # Distribution fiber
+    - length_m: 25000.0
+      fiber_type: G652D
+    
+    # Meet me
+    - length_m: 200.0
+      fiber_type: G657A2
+  
+  # Events along the fiber path
+  events:
+    - type: connector
+      position_m: 0.0
+      insertion_loss_db: 0.3
+      connector_type: UPC
+      state:
+        mated:
+          return_loss_db: 45.0
+
+    - type: connector
+      position_m: 220.0
+      insertion_loss_db: 0.15
+      connector_type: UPC
+      state:
+        mated:
+          return_loss_db: 50.0
+
+    - type: connector
+      position_m: 200.0
+      insertion_loss_db: 0.13
+      connector_type: UPC
+      state:
+        mated:
+          return_loss_db: 42.0
+    
+    - type: splice
+      position_m: 201.0
+      insertion_loss_db: 0.15
+      splice_type: fusion
+    
+    # Splices
+    - type: splice
+      position_m: 2000.0
+      insertion_loss_db: 0.08
+      splice_type: fusion
+    - type: splice
+      position_m: 3000.0
+      insertion_loss_db: 0.08
+      splice_type: fusion
+    - type: splice
+      position_m: 3100.0
+      insertion_loss_db: 0.28
+      splice_type: fusion
+
+    - type: splice
+      position_m: 23000.0
+      insertion_loss_db: 0.12
+      splice_type: fusion
+    
+    # Far end connector
+    - type: connector
+      position_m: 25200.0
+      insertion_loss_db: 0.15
+      connector_type: UPC
+      state: open
+
+# Acquisition settings - simulate at three common wavelengths
+acquisition:
+  # Multiple wavelengths for macrobend detection
+  wavelengths:
+    - wavelength_nm: 1310
+      pulse_width_ns: 100.0
+    
+    - wavelength_nm: 1550
+      pulse_width_ns: 100.0
+    
+    - wavelength_nm: 1625
+      pulse_width_ns: 100.0
+  
+  # OTDR range setting
+  range_m: 50000.0
+  
+  # Averaging time
+  averaging_time_s: 90.0
+  
+  # Pulse shape
+  pulse_shape: !real_rectangular {}
+  
+  # Optional launch cable between OTDR and fiber under test
+  # This creates the "user offset" in the trace
+  launch_cable:
+    length_m: 500.0
+    connector_type: APC
+    connector_loss_db: 0.15
+
+# Hardware characteristics (all optional - defaults shown here)
+hardware:
+  noise_floor_dbm: -65.0
+  dynamic_range_db: 40.0
+  detector_bandwidth_mhz: 50.0
+  saturation_power_mw: 0.1
+  event_dead_zone_m: 0.8
+  attenuation_dead_zone_m: 3.0
+  group_index: 1.4682
+  injection_power_mw: 1.0
+  # Internal fiber before the front panel connector (typically 20-100m)
+  front_panel_offset_m: 50.0
