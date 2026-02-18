@@ -62,6 +62,19 @@ impl SORFile {
         Ok(result.into())
     }
 
+    #[pyo3(name = "to_json")]
+    fn to_json_py(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let json_str = serde_json::to_string(&self)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let json_module = py.import("json")?;
+        json_module.call_method1("loads", (json_str,))?.extract()
+    }
+
+    #[pyo3(name = "to_cbor")]
+    fn to_cbor_py(&self) -> PyResult<Vec<u8>> {
+        serde_cbor::to_vec(&self).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
 }
 
 /// This module is implemented in Rust.

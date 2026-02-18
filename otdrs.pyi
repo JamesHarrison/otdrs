@@ -1,3 +1,6 @@
+import enum
+
+
 class BlockInfo:
     """Details about a specific SOR block"""
 
@@ -294,6 +297,18 @@ class SORFile:
         trying different strategies for how the checksum might have been computed.
 
         Returns an enum. You should generally treat a missing checksum as non-fatal."""
+        ...
+
+    def to_json(self) -> dict:
+        """
+        Serialize SORFile class to json
+        """
+        ...
+
+    def to_cbor(self) -> bytes:
+        """
+        Serialize SORFile class to CBOR
+        """
         ...
 
 def parse_file(path: str) -> SORFile:
