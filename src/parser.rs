@@ -1134,3 +1134,26 @@ fn test_ascii_handling() {
     let data = res.unwrap();
     assert_eq!(data, test_str);
 }
+
+/// Regression test for Map blocks whose `block_count` excludes the Map block itself
+/// (the SR-4731 Issue 1 convention, seen in the wild on EXFO FTB-series rev 2.00 files).
+/// Synthesised from a known-good fixture by decrementing `block_count` so it no longer
+/// includes the Map block; the BlockInfo table and `block_size` are untouched, which is
+/// exactly what such files look like. Before sizing the table from `block_size`, this
+/// left the last BlockInfo entry unread and the parser then failed on it.
+#[test]
+fn test_map_block_count_excluding_map_block() {
+    let mut data = include_bytes!("../data/example2-exfo-maxtester730c.sor").to_vec();
+    // Map layout: "Map\0" (4) + revision u16 (2) + block_size u32 (4) + block_count u16 (2)
+    let count = u16::from_le_bytes([data[10], data[11]]);
+    assert_eq!(count, 8, "fixture assumption: block_count includes the Map block");
+    data[10..12].copy_from_slice(&(count - 1).to_le_bytes());
+
+    let (_, sor) = parse_file(&data).expect("Issue 1 style block_count must parse");
+    assert_eq!(sor.map.block_count, 7, "block_count is retained verbatim");
+    assert_eq!(sor.map.block_info.len(), 7, "all BlockInfo entries are read");
+    // Same content as the unmodified fixture.
+    let (_, reference) = parse_file(include_bytes!("../data/example2-exfo-maxtester730c.sor")).unwrap();
+    assert_eq!(sor.key_events.unwrap().number_of_key_events, reference.key_events.unwrap().number_of_key_events);
+    assert_eq!(sor.data_points.unwrap().number_of_data_points, reference.data_points.unwrap().number_of_data_points);
+}
