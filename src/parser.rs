@@ -31,6 +31,19 @@ fn block_header<'a>(i: &'a [u8], header: &str) -> IResult<&'a [u8], &'a [u8]> {
     terminated(tag(header), tag("\0")).parse(i)
 }
 
+// SR-4731 Issue 2 (rev 2.50) prefixes each block's data with "BlockName\0" — the same
+// identifier the Map block already carries. Issue 1 (rev 2.00) files written by older
+// or simpler equipment omit that redundant prefix. This consumes the prefix when
+// present and silently no-ops when absent, so a single parser path handles both.
+fn maybe_block_header<'a>(i: &'a [u8], header: &str) -> IResult<&'a [u8], &'a [u8]> {
+    let needed = header.len() + 1; // +1 for the null terminator
+    if i.len() >= needed && &i[..header.len()] == header.as_bytes() && i[header.len()] == 0 {
+        Ok((&i[needed..], &i[..needed]))
+    } else {
+        Ok((i, &[]))
+    }
+}
+
 /// Parse a block information sequence within the map block
 fn map_block_info(i: &[u8]) -> IResult<&[u8], BlockInfo> {
     let (i, header) = null_terminated_str(i)?;
@@ -53,14 +66,30 @@ pub fn map_block(i: &[u8]) -> IResult<&[u8], MapBlock> {
     let (i, revision_number) = le_u16(i)?;
     let (i, block_size) = le_i32(i)?;
     let (i, block_count) = le_i16(i)?;
-    let blocks_to_read = block_count.checked_sub(1);
-    if blocks_to_read == None {
-        return Err(Err::Failure(Error {
-            input: i,
-            code: ErrorKind::Fix,
-        }));
+    // SR-4731 conventions for `block_count` vary by vendor and issue:
+    //   - Issue 2 (rev >= 250) typically reports total blocks INCLUDING the Map block.
+    //   - Issue 1 (rev < 250) reports the number of non-Map blocks.
+    //   - Some Issue 1 vendor files (e.g. Anritsu MT9090A) still use the Issue 2 convention.
+    // Rather than trust the field, consume BlockInfo entries based on the Map's block_size,
+    // which is consistently the total Map block byte length across every variant we've seen.
+    // The 12-byte fixed header is: "Map\0" (4) + rev (2) + size (4) + count (2).
+    let header_consumed: usize = 12;
+    let entries_data_size: usize = (block_size as usize).saturating_sub(header_consumed);
+    if entries_data_size > i.len() {
+        return Err(Err::Failure(Error { input: i, code: ErrorKind::Verify }));
     }
-    let (i, block_info) = count(map_block_info, blocks_to_read.unwrap() as usize).parse(i)?;
+    let (i_after_map, entries_data) = take(entries_data_size)(i)?;
+    let mut block_info: Vec<BlockInfo> = Vec::new();
+    let mut remaining: &[u8] = entries_data;
+    while !remaining.is_empty() {
+        // Stop at trailing padding (all-zero remainder).
+        if remaining.iter().all(|&b| b == 0) { break; }
+        let (rest, bi) = map_block_info(remaining)?;
+        block_info.push(bi);
+        remaining = rest;
+    }
+    let _ = block_count; // retained in the MapBlock for fidelity even if we don't trust it
+    let i = i_after_map;
     Ok((
         i,
         MapBlock {
@@ -104,7 +133,7 @@ fn fixed_length_str(i: &[u8], n_bytes: usize) -> IResult<&[u8], &str> {
 /// Parse the general parameters block, which contains acquisition information
 /// as well as locations/identifiers.
 pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlock> {
-    let (i, _) = block_header(i, BLOCK_ID_GENPARAMS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_GENPARAMS)?;
     let (i, language_code) = fixed_length_str(i, 2)?;
     let (i, cable_id) = null_terminated_str(i)?;
     let (i, fiber_id) = null_terminated_str(i)?;
@@ -141,7 +170,7 @@ pub fn general_parameters_block(i: &[u8]) -> IResult<&[u8], GeneralParametersBlo
 /// Parse the supplier parameters block, which contains information about the
 /// OTDR equipment used.
 pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersBlock> {
-    let (i, _) = block_header(i, BLOCK_ID_SUPPARAMS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_SUPPARAMS)?;
     let (i, supplier_name) = null_terminated_str(i)?;
     let (i, otdr_mainframe_id) = null_terminated_str(i)?;
     let (i, otdr_mainframe_sn) = null_terminated_str(i)?;
@@ -166,7 +195,7 @@ pub fn supplier_parameters_block(i: &[u8]) -> IResult<&[u8], SupplierParametersB
 /// Parse the fixed paramters block, which contains most of the information
 /// required to interpret the stored data.
 pub fn fixed_parameters_block(i: &[u8]) -> IResult<&[u8], FixedParametersBlock> {
-    let (i, _) = block_header(i, BLOCK_ID_FXDPARAMS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_FXDPARAMS)?;
     let (i, date_time_stamp) = le_u32(i)?;
     let (i, units_of_distance) = fixed_length_str(i, 2)?;
     let (i, actual_wavelength) = le_i16(i)?;
@@ -308,7 +337,7 @@ pub fn last_key_event(i: &[u8]) -> IResult<&[u8], LastKeyEvent> {
 
 /// Parse the key events block
 pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents> {
-    let (i, _) = block_header(i, BLOCK_ID_KEYEVENTS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_KEYEVENTS)?;
     let (i, number_of_key_events) = le_i16(i)?;
     let (n_key_events, overflowed) = number_of_key_events.overflowing_sub(1);
     if overflowed {
@@ -332,7 +361,7 @@ pub fn key_events_block(i: &[u8]) -> IResult<&[u8], KeyEvents> {
 // TODO: Test this, no test data to hand so this is probably correct
 /// Parse a landmark from the link parameters block
 pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark> {
-    let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, landmark_number) = le_i16(i)?;
     let (i, landmark_code) = fixed_length_str(i, 2)?;
     let (i, landmark_location) = le_i32(i)?;
@@ -369,7 +398,7 @@ pub fn landmark(i: &[u8]) -> IResult<&[u8], Landmark> {
 // TODO: Test this, no test data to hand so this is probably correct
 /// Extract link parameters and encoded landmarks from the LinkParams block.
 pub fn link_parameters_block(i: &[u8]) -> IResult<&[u8], LinkParameters> {
-    let (i, _) = block_header(i, BLOCK_ID_LNKPARAMS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_LNKPARAMS)?;
     let (i, number_of_landmarks) = le_i16(i)?;
     let (i, landmarks) = count(landmark, number_of_landmarks as usize).parse(i)?;
     Ok((
@@ -398,7 +427,7 @@ pub fn data_points_at_scale_factor(i: &[u8]) -> IResult<&[u8], DataPointsAtScale
 
 /// Parse the DataPoints block and extract all the points for each scale factor
 pub fn data_points_block(i: &[u8]) -> IResult<&[u8], DataPoints> {
-    let (i, _) = block_header(i, BLOCK_ID_DATAPTS)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_DATAPTS)?;
     let (i, number_of_data_points) = le_i32(i)?;
     let (i, total_number_scale_factors_used) = le_i16(i)?;
     let (i, scale_factors) = count(
@@ -418,7 +447,7 @@ pub fn data_points_block(i: &[u8]) -> IResult<&[u8], DataPoints> {
 
 /// Parse the checksum block
 pub fn checksum_block(i: &[u8]) -> IResult<&[u8], ChecksumBlock> {
-    let (i, _) = block_header(i, BLOCK_ID_CHECKSUM)?;
+    let (i, _) = maybe_block_header(i, BLOCK_ID_CHECKSUM)?;
     let (i, checksum) = le_i16(i)?;
     Ok((
         i,
